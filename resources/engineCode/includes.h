@@ -19,6 +19,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <array>
 
 // iostream stuff
 using std::cerr;
