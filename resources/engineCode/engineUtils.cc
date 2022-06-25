@@ -31,6 +31,7 @@ bool engine::mainLoop() {
 
 void engine::sendDisplayUniforms() {
 	glUniform2i( glGetUniformLocation( displayShader, "numChars" ), buffer.dimensions.x, buffer.dimensions.y );
+	glUniform2i( glGetUniformLocation( displayShader, "offset" ), buffer.offset.x, buffer.offset.y );
 }
 
 void engine::clear() {

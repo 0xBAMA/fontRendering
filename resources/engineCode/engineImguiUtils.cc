@@ -37,8 +37,18 @@ static void HelpMarker( const char *desc ) {
 
 void engine::showControlsWindow(){
 	ImGui::Begin( "Controls", NULL, 0 );
-	ImGui::SliderInt( "Characters Width", &buffer.dimensions.x, 1, 256 );
-	ImGui::SliderInt( "Characters Height", &buffer.dimensions.y, 1, 256 );
+	unsigned int min = 1;
+	unsigned int max = 256;
+	ImGui::SliderScalar( "Display Width", ImGuiDataType_U32, &buffer.dimensions.x, &min, &max );
+	ImGui::SliderScalar( "Display Height", ImGuiDataType_U32, &buffer.dimensions.y, &min, &max );
+	ImGui::Text( " " );
+	ImGui::SliderScalar( "Buffer Width", ImGuiDataType_U32, &buffer.bufferSize.x, &min, &max );
+	ImGui::SliderScalar( "Buffer Height", ImGuiDataType_U32, &buffer.bufferSize.y, &min, &max );
+	ImGui::Text( " " );
+	int min2 = -256;
+	int max2 = 256;
+	ImGui::SliderScalar( "Offset X", ImGuiDataType_S32, &buffer.offset.x, &min2, &max2 );
+	ImGui::SliderScalar( "Offset Y", ImGuiDataType_S32, &buffer.offset.y, &min2, &max2 );
 	ImGui::End();
 }
 
