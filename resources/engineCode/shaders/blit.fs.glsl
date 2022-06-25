@@ -14,8 +14,7 @@ uniform ivec2 offset;
 out vec4 fragmentOutput;
 void main() {
 
-	// fragmentOutput = texture( current, gl_FragCoord.xy / resolution );
-	fragmentOutput = vec4( 0.0, 0.0, 0.0, 1.0 );
+	fragmentOutput = vec4( 0.0 );
 
 	ivec2 characterIndex = ivec2( floor( ( gl_FragCoord.xy / resolution ) * numChars ) );
 	characterIndex.y = numChars.y - 1 - characterIndex.y;
@@ -42,9 +41,8 @@ void main() {
 
 	// use the color held in the first three channels
 	if ( atlasRead != vec3( 0.0 ) ) {
-		fragmentOutput.xyz = vec3( characterID.rgb / 255.0 );
+		fragmentOutput = vec4( characterID.rgb / 255.0, 1.0 );
 	}
-
-	// fragmentOutput.xy = positionOnCharacter;
-
+	fragmentOutput.g *= sin( float( offset.x * 4.0 ) );
+	fragmentOutput.r *= sin( float( offset.y ) );
 }
