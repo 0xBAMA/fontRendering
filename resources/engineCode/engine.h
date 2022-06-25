@@ -20,7 +20,8 @@ private:
 	ImVec4 clearColor;
 
 	// OpenGL data
-	GLuint displayTexture;
+	GLuint atlasTexture;
+	GLuint dataTexture;
 	GLuint displayShader;
 	GLuint displayVAO;
 
@@ -45,7 +46,7 @@ private:
 	void quitConf( bool *open );
 
 	// textBuffer state
-	textBuffer buffer{ 64, 32 };
+	textBuffer buffer{ 180, 70 };
 
 	// shutdown procedures
 	void imguiQuit();

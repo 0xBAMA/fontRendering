@@ -77,35 +77,48 @@ void engine::createWindowAndContext() {
 	// have to have dummy call to this - core requires a VAO bound when calling glDrawArrays, otherwise it complains
 	glGenVertexArrays( 1, &displayVAO );
 
-	// replace this with real image data
-	std::vector<uint8_t> imageData;
-	imageData.resize( WIDTH * HEIGHT * 4 );
-
-	// fill with random values
-	std::default_random_engine gen;
-	std::uniform_int_distribution<uint8_t> dist( 150, 255 );
-	std::uniform_int_distribution<uint8_t> dist2( 12, 45 );
-
-	for ( auto it = imageData.begin(); it != imageData.end(); it++ )
-		*it = dist( gen );
+	std::vector< uint8_t > imageData;
+	unsigned imageWidth, imageHeight, error;
+	// error = lodepng::decode( imageData, imageWidth, imageHeight, std::string("colorBlackBackground.png").c_str() );
+	// error = lodepng::decode( imageData, imageWidth, imageHeight, std::string("colorClearBackground.png").c_str() );
+	error = lodepng::decode( imageData, imageWidth, imageHeight, std::string("whiteBlackBackground.png").c_str() );
+	// error = lodepng::decode( imageData, imageWidth, imageHeight, std::string("whiteClearBackground.png").c_str() );
 
 	// create the image textures
-	glGenTextures( 1, &displayTexture );
+	glGenTextures( 1, &atlasTexture );
 	glActiveTexture( GL_TEXTURE0 );
-	glBindTexture( GL_TEXTURE_2D, displayTexture );
+	glBindTexture( GL_TEXTURE_2D, atlasTexture );
 
 	// texture parameters
 	bool linearFilter = false;
-	glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, linearFilter ? GL_NEAREST : GL_LINEAR );
-	glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, linearFilter ? GL_NEAREST : GL_LINEAR );
+	glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, linearFilter ? GL_LINEAR : GL_NEAREST );
+	glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, linearFilter ? GL_LINEAR : GL_NEAREST );
 	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
 	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
 
 	// buffer the image data to the GPU
 	glActiveTexture( GL_TEXTURE0 );
-	glBindTexture( GL_TEXTURE_2D, displayTexture );
-	glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA8, WIDTH, HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, &imageData[ 0 ] );
-	glBindImageTexture( 0, displayTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8UI );
+	glBindTexture( GL_TEXTURE_2D, atlasTexture );
+	glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA8, imageWidth, imageHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, &imageData[ 0 ] );
+	glBindImageTexture( 0, atlasTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8UI );
+
+	// fill data texture with random values
+	imageData.resize( buffer.dimensions.x * buffer.dimensions.y * 4 );
+	std::default_random_engine gen;
+	std::uniform_int_distribution<uint8_t> dist( 0, 255 );
+
+	for ( auto it = imageData.begin(); it != imageData.end(); it++ )
+		*it = dist( gen );
+
+	glGenTextures( 1, &dataTexture );
+	glActiveTexture( GL_TEXTURE1 );
+	glBindTexture( GL_TEXTURE_2D, dataTexture );
+	glActiveTexture( GL_TEXTURE1 );
+	glBindTexture( GL_TEXTURE_2D, dataTexture );
+	glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA8, buffer.dimensions.x, buffer.dimensions.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, &imageData[ 0 ] );
+	glBindImageTexture( 1, dataTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8UI );
+
+	buffer.dataTexture = dataTexture;
 }
 
 void engine::computeShaderCompile() {
