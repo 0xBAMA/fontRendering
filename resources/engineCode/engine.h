@@ -2,6 +2,7 @@
 #define ENGINE
 
 #include "includes.h"
+#include "textBuffer.h"
 
 class engine {
 public:
@@ -38,8 +39,13 @@ private:
 	void imguiPass();
 	void imguiFrameStart();
 	void imguiFrameEnd();
+	void showControlsWindow();
+	void sendDisplayUniforms();
 	void drawTextEditor();
 	void quitConf( bool *open );
+
+	// textBuffer state
+	textBuffer buffer{ 64, 32 };
 
 	// shutdown procedures
 	void imguiQuit();

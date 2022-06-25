@@ -35,6 +35,13 @@ static void HelpMarker( const char *desc ) {
 }
 
 
+void engine::showControlsWindow(){
+	ImGui::Begin( "Controls", NULL, 0 );
+	ImGui::SliderInt( "Characters Width", &buffer.dimensions.x, 1, 256 );
+	ImGui::SliderInt( "Characters Height", &buffer.dimensions.y, 1, 256 );
+	ImGui::End();
+}
+
 void engine::drawTextEditor() {
 	ImGui::Begin( "Editor", NULL, 0 );
 	static TextEditor editor;

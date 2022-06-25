@@ -7,6 +7,12 @@ bool engine::mainLoop() {
 	// clear the screen and depth buffer
 	clear();
 
+	// update the textBuffer object
+	buffer.Update();
+
+	// update the uniforms for the display shader
+	sendDisplayUniforms();
+
 	// fullscreen triangle copying the image
 	mainDisplay();
 
@@ -21,6 +27,10 @@ bool engine::mainLoop() {
 
 	// break main loop when pQuit turns true
 	return pQuit;
+}
+
+void engine::sendDisplayUniforms() {
+	glUniform2i( glGetUniformLocation( displayShader, "numChars" ), buffer.dimensions.x, buffer.dimensions.y );
 }
 
 void engine::clear() {
@@ -43,9 +53,11 @@ void engine::imguiPass() {
 	imguiFrameStart();
 
 	// show the demo window
-	static bool showDemoWindow = true;
+	static bool showDemoWindow = false;
 	if ( showDemoWindow )
 		ImGui::ShowDemoWindow( &showDemoWindow );
+
+	showControlsWindow();
 
 	// show quit confirm window
 	quitConf( &quitConfirm );
