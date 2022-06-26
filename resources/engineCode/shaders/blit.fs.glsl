@@ -2,7 +2,8 @@
 
 // font data
 layout( binding = 0 ) uniform sampler2D currentFont;
-const ivec2 characterAtlasDimensions = ivec2( 1, 256 );
+// const ivec2 characterAtlasDimensions = ivec2( 1, 256 );
+const ivec2 characterAtlasDimensions = ivec2( 16, 16 );
 
 // data buffer - characters to be rendered
 layout( binding = 1, rgba8ui ) uniform uimage2D dataTexture;
@@ -14,7 +15,7 @@ uniform ivec2 offset;
 out vec4 fragmentOutput;
 void main() {
 
-	fragmentOutput = vec4( 0.0 );
+	fragmentOutput = vec4( 0.0, 0.0, 0.0, 0.0 );
 
 	ivec2 characterIndex = ivec2( floor( ( gl_FragCoord.xy / resolution ) * numChars ) );
 	characterIndex.y = numChars.y - 1 - characterIndex.y;
@@ -34,15 +35,14 @@ void main() {
 	positionOnCharacter.y = 1.0 - positionOnCharacter.y;
 
 	// texture reference of the given character, at computed uv
-	vec3 atlasRead = vec3( 0.0 );
 	if ( characterID.a != 0 && boundsCheck ) {
-		atlasRead = texture( currentFont, vec2( positionOnCharacter.x / characterAtlasDimensions.x, ( float( characterID.a ) + positionOnCharacter.y ) / characterAtlasDimensions.y ) ).xyz;
+		vec2 atlasReadLocation =  vec2( ( float( characterID.a % characterAtlasDimensions.y ) + positionOnCharacter.x ) / characterAtlasDimensions.x, ( float( characterID.a / characterAtlasDimensions.x ) + positionOnCharacter.y ) / characterAtlasDimensions.y );
+		fragmentOutput = texture( currentFont, atlasReadLocation );
 	}
 
 	// use the color held in the first three channels
-	if ( atlasRead != vec3( 0.0 ) ) {
-		fragmentOutput = vec4( characterID.rgb / 255.0, 1.0 );
-	}
-	fragmentOutput.g *= sin( float( offset.x * 4.0 ) );
-	fragmentOutput.r *= sin( float( offset.y ) );
+	fragmentOutput.xyz *= ( characterID.rgb / 255.0 );
+
+	// int idx = characterIndex.x + characterIndex.y * numChars.x;
+	// fragmentOutput = texture( currentFont, vec2(  positionOnCharacter.x / characterAtlasDimensions.x, ( float( idx ) + positionOnCharacter.y ) / characterAtlasDimensions.y ) );
 }

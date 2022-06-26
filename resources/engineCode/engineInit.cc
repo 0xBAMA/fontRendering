@@ -80,9 +80,15 @@ void engine::createWindowAndContext() {
 	std::vector< uint8_t > imageData;
 	unsigned imageWidth, imageHeight, error;
 	// error = lodepng::decode( imageData, imageWidth, imageHeight, std::string("colorBlackBackground.png").c_str() );
-	error = lodepng::decode( imageData, imageWidth, imageHeight, std::string("colorClearBackground.png").c_str() );
+	// error = lodepng::decode( imageData, imageWidth, imageHeight, std::string("colorClearBackground.png").c_str() );
 	// error = lodepng::decode( imageData, imageWidth, imageHeight, std::string("whiteBlackBackground.png").c_str() );
 	// error = lodepng::decode( imageData, imageWidth, imageHeight, std::string("whiteClearBackground.png").c_str() );
+	// error = lodepng::decode( imageData, imageWidth, imageHeight, std::string("whiteOnBlack.png").c_str() );
+	// error = lodepng::decode( imageData, imageWidth, imageHeight, std::string("whiteOnClear.png").c_str() );
+	error = lodepng::decode( imageData, imageWidth, imageHeight, std::string("colorOnBlack.png").c_str() );
+	// error = lodepng::decode( imageData, imageWidth, imageHeight, std::string("colorOnClear.png").c_str() );
+
+	if ( error ) cout << endl << "error loading font atlas: " << lodepng_error_text( error ) << endl;
 
 	// create the image textures
 	glGenTextures( 1, &atlasTexture );
@@ -207,6 +213,4 @@ void engine::imguiSetup() {
 	colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.80f, 0.80f, 0.80f, 0.35f);
 
 	cout << T_GREEN << "done." << RESET << endl << endl;
-
-	cout << static_cast<char>(250) << endl;
 }

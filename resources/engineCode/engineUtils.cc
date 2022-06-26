@@ -10,22 +10,11 @@ bool engine::mainLoop() {
 	// update the textBuffer object
 	buffer.Update();
 
-	int baseX = buffer.offset.x;
-	int baseY = buffer.offset.y;
+	// update the uniforms for the display shader
+	sendDisplayUniforms();
 
-	for ( float i = 0; i < 33; i++ ) {
-		buffer.offset.x = baseX + 3 * i;
-		buffer.offset.y = baseY + 15 * sin( i );
-
-		// update the uniforms for the display shader
-		sendDisplayUniforms();
-
-		// fullscreen triangle copying the image
-		mainDisplay();
-	}
-
-	buffer.offset.x = baseX;
-	buffer.offset.y = baseY;
+	// fullscreen triangle copying the image
+	mainDisplay();
 
 	// do all the gui stuff
 	imguiPass();
