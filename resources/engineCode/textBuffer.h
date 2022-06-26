@@ -23,8 +23,8 @@ class textBuffer {
 public:
 	textBuffer( unsigned int x, unsigned int y )
 		: dimensions( x, y )
-		, bufferSize( x-10, y-4 )
-		, offset( 5, 2 ) {
+		, bufferSize( x - numCharsBorderX * 2, y - numCharsBorderY * 2 )
+		, offset( numCharsBorderX, numCharsBorderY ) {
 
 			ResetBuffer();
 			Draw();
@@ -123,7 +123,7 @@ public:
 	void ResetBuffer () {
 		if ( bufferBase != nullptr )
 			free( bufferBase );	// deallocate the memory for the buffer
-			size_t numBytes = sizeof( coloredChar ) * bufferSize.x * bufferSize.y;
+		size_t numBytes = sizeof( coloredChar ) * bufferSize.x * bufferSize.y;
 		bufferBase = ( coloredChar * ) malloc( numBytes ); // allocate a new buffer of the new size
 		updateFlag = true;
 	}

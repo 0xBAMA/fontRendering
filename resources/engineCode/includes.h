@@ -92,6 +92,8 @@ using json = nlohmann::json;
 
 constexpr unsigned int numCharsWidthDefault = 200;
 constexpr unsigned int numCharsHeightDefault = 60;
+constexpr unsigned int numCharsBorderX = 5;
+constexpr unsigned int numCharsBorderY = 2;
 
 // Function to get color temperature from shadertoy user BeRo
 // from the author:

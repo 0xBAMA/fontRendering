@@ -59,7 +59,7 @@ void engine::imguiPass() {
 	if ( showDemoWindow )
 		ImGui::ShowDemoWindow( &showDemoWindow );
 
-	showControlsWindow();
+	// showControlsWindow();
 
 	// show quit confirm window
 	quitConf( &quitConfirm );
