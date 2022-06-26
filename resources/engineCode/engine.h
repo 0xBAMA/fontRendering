@@ -46,7 +46,7 @@ private:
 	void quitConf( bool *open );
 
 	// textBuffer state
-	textBuffer buffer{ 90, 39 };
+	textBuffer buffer{ numCharsWidthDefault, numCharsHeightDefault };
 
 	// shutdown procedures
 	void imguiQuit();

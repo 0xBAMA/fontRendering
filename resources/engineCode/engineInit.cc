@@ -21,18 +21,16 @@ void engine::createWindowAndContext() {
 	SDL_GL_SetAttribute( SDL_GL_STENCIL_SIZE,       8 );
 	SDL_GL_SetAttribute( SDL_GL_MULTISAMPLEBUFFERS, MSAACount );
 
-	// query the screen resolution
-	SDL_DisplayMode dm;
-	SDL_GetDesktopDisplayMode( 0, &dm );
-	totalScreenWidth = dm.w;
-	totalScreenHeight = dm.h;
+	totalScreenWidth = 8 * numCharsWidthDefault;
+	totalScreenHeight = 16 * numCharsHeightDefault;
 
 	cout << T_GREEN << "done." << RESET << endl;
 
 	cout << T_BLUE << "    Creating window" << RESET << " .................................. ";
 	// auto flags = SDL_WINDOW_OPENGL | SDL_WINDOW_HIDDEN | SDL_WINDOW_BORDERLESS;
-	auto flags = SDL_WINDOW_OPENGL | SDL_WINDOW_HIDDEN | SDL_WINDOW_RESIZABLE;
-	window = SDL_CreateWindow( "NQADE", 0, 0, dm.w, dm.h, flags );
+	// auto flags = SDL_WINDOW_OPENGL | SDL_WINDOW_HIDDEN | SDL_WINDOW_RESIZABLE;
+	auto flags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE;
+	window = SDL_CreateWindow( "NQADE", 0, 0, totalScreenWidth, totalScreenHeight, flags );
 
 	// if init takes some time, don't show the window before it's done
 	SDL_ShowWindow( window );
@@ -84,8 +82,8 @@ void engine::createWindowAndContext() {
 	// error = lodepng::decode( imageData, imageWidth, imageHeight, std::string("whiteBlackBackground.png").c_str() );
 	// error = lodepng::decode( imageData, imageWidth, imageHeight, std::string("whiteClearBackground.png").c_str() );
 	// error = lodepng::decode( imageData, imageWidth, imageHeight, std::string("whiteOnBlack.png").c_str() );
-	// error = lodepng::decode( imageData, imageWidth, imageHeight, std::string("whiteOnClear.png").c_str() );
-	error = lodepng::decode( imageData, imageWidth, imageHeight, std::string("colorOnBlack.png").c_str() );
+	error = lodepng::decode( imageData, imageWidth, imageHeight, std::string("whiteOnClear.png").c_str() );
+	// error = lodepng::decode( imageData, imageWidth, imageHeight, std::string("colorOnBlack.png").c_str() );
 	// error = lodepng::decode( imageData, imageWidth, imageHeight, std::string("colorOnClear.png").c_str() );
 
 	if ( error ) cout << endl << "error loading font atlas: " << lodepng_error_text( error ) << endl;

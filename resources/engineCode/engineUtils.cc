@@ -46,6 +46,7 @@ void engine::mainDisplay() {
 	glUseProgram( displayShader );
 	glBindVertexArray( displayVAO );
 	glUniform2f( glGetUniformLocation( displayShader, "resolution" ), io.DisplaySize.x, io.DisplaySize.y );
+	glViewport(0, 0, (int)io.DisplaySize.x, (int)io.DisplaySize.y);
 	glDrawArrays( GL_TRIANGLES, 0, 3 );
 }
 

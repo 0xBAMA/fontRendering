@@ -90,6 +90,9 @@ using json = nlohmann::json;
 #define WIDTH 640
 #define HEIGHT 480
 
+constexpr unsigned int numCharsWidthDefault = 200;
+constexpr unsigned int numCharsHeightDefault = 60;
+
 // Function to get color temperature from shadertoy user BeRo
 // from the author:
 //   Color temperature (sRGB) stuff
