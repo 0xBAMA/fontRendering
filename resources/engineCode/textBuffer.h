@@ -2,6 +2,8 @@
 #ifndef TEXTBUFFER
 #define TEXTBUFFER
 
+#include "extendedASCIIdefines.h"
+
 struct coloredChar {
 	unsigned char data[ 4 ] = { 255, 255, 255, 0 };
 
@@ -34,7 +36,7 @@ public:
 			lastUpdateBufferSize = bufferSize;
 			// resize the buffer and resend the data
 			ResetBuffer();
-			Repopulate();
+			fillWithTestString();
 			ResendData();
 		}
 	}
@@ -46,7 +48,7 @@ public:
 	}
 
 	// go from string to the buffer
-	void Repopulate() {
+	void fillWithTestString() {
 		// std::random_device r;
 		// std::seed_seq s{ r(), r(), r(), r(), r(), r(), r(), r(), r() };
 		// auto gen = std::mt19937_64( s );
@@ -120,7 +122,12 @@ public:
 
 
 private:
+	// I don't like doing it this way
 	std::vector< coloredChar > buffer;
+
+	// malloc/free version - can be used directly for texture
+	coloredChar * bufferBase;
+
 };
 
 #endif

@@ -80,8 +80,8 @@ void engine::createWindowAndContext() {
 	std::vector< uint8_t > imageData;
 	unsigned imageWidth, imageHeight, error;
 	// error = lodepng::decode( imageData, imageWidth, imageHeight, std::string("colorBlackBackground.png").c_str() );
-	// error = lodepng::decode( imageData, imageWidth, imageHeight, std::string("colorClearBackground.png").c_str() );
-	error = lodepng::decode( imageData, imageWidth, imageHeight, std::string("whiteBlackBackground.png").c_str() );
+	error = lodepng::decode( imageData, imageWidth, imageHeight, std::string("colorClearBackground.png").c_str() );
+	// error = lodepng::decode( imageData, imageWidth, imageHeight, std::string("whiteBlackBackground.png").c_str() );
 	// error = lodepng::decode( imageData, imageWidth, imageHeight, std::string("whiteClearBackground.png").c_str() );
 
 	// create the image textures
@@ -207,4 +207,6 @@ void engine::imguiSetup() {
 	colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.80f, 0.80f, 0.80f, 0.35f);
 
 	cout << T_GREEN << "done." << RESET << endl << endl;
+
+	cout << static_cast<char>(250) << endl;
 }
