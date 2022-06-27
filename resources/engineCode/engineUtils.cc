@@ -74,7 +74,6 @@ void engine::handleEvents() {
 	while ( SDL_PollEvent( &event ) ) {
 		// imgui event handling
 		ImGui_ImplSDL2_ProcessEvent( &event );
-
 		if ( event.type == SDL_QUIT )
 			pQuit = true;
 
@@ -87,4 +86,10 @@ void engine::handleEvents() {
 		if ( event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_ESCAPE && SDL_GetModState() & KMOD_SHIFT )
 			pQuit = true; // force quit on shift+esc ( bypasses confirm window )
 	}
+
+	const uint8_t *state = SDL_GetKeyboardState( NULL );
+	if ( state[ SDL_SCANCODE_RIGHT ] )	buffer.rgd.playerLocation.x++;
+	if ( state[ SDL_SCANCODE_LEFT ] ) 	buffer.rgd.playerLocation.x--;
+	if ( state[ SDL_SCANCODE_UP ] ) 		buffer.rgd.playerLocation.y--;
+	if ( state[ SDL_SCANCODE_DOWN ] )		buffer.rgd.playerLocation.y++;
 }

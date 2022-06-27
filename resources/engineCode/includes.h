@@ -91,7 +91,7 @@ using json = nlohmann::json;
 #define HEIGHT 480
 
 constexpr unsigned int numCharsWidthDefault = 200;
-constexpr unsigned int numCharsHeightDefault = 60;
+constexpr unsigned int numCharsHeightDefault = 61;
 constexpr unsigned int numCharsBorderX = 5;
 constexpr unsigned int numCharsBorderY = 2;
 

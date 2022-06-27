@@ -16,7 +16,59 @@ struct coloredChar {
 		data[ 2 ] = color.z;
 		data[ 3 ] = c;
 	}
+};
 
+struct fieldGenerator {
+public:
+	fieldGenerator() {
+		auto fnSimplex = FastNoise::New<FastNoise::Simplex>();
+		auto fnFractal = FastNoise::New<FastNoise::FractalFBm>();
+		fnFractal->SetSource( fnSimplex );
+		fnFractal->SetOctaveCount( 2 );
+		fnGenerator = fnFractal;
+	}
+
+	float GetNoise ( glm::vec2 position ) {
+		int seed = 42069;
+		return ( fnGenerator->GenSingle2D( position.x, position.y * 2.0f, seed ) + 1.0f ) * 0.5f;
+	}
+
+	FastNoise::SmartNode<> fnGenerator;
+};
+
+class roguelikeGameDisplay {
+public:
+	glm::ivec2 playerLocation = glm::ivec2( 0, 0 );
+
+	// access from above for the display
+	std::string displayString;
+	// allows the displayString to be used directly by the textBuffer
+	glm::uvec2 displayBase = glm::uvec2( 4, 2 );
+	glm::uvec2 displaySize = glm::uvec2( 130, 53 );
+
+	void Update () {
+		static glm::ivec2 previousPlayerLocation = glm::ivec2( -1, -1 );
+		if ( playerLocation != previousPlayerLocation ) {
+			previousPlayerLocation = playerLocation;
+			PrepareDisplayString();
+		}
+	}
+
+private:
+	void PrepareDisplayString () {
+		// construct 2d representation in the displayString
+		displayString = std::string();
+		const float scaleFactor = 0.01f;
+		const glm::vec2 offset = ( displaySize / 2u );
+		for( unsigned int y = 0; y < displaySize.y; y++ ) {
+			for( unsigned int x = 0; x < displaySize.x; x++ ) {
+				glm::vec2 samplePoint = ( glm::vec2( playerLocation ) + glm::vec2( x, y ) - offset ) * scaleFactor;
+				displayString += static_cast< unsigned char >( noise.GetNoise( samplePoint ) * 32 + 166 );
+			}
+		}
+	}
+
+	fieldGenerator noise;
 };
 
 class textBuffer {
@@ -28,8 +80,9 @@ public:
 
 			ResetBuffer();
 			Draw();
-
 	}
+
+	roguelikeGameDisplay rgd;
 
 	// size of the buffer
 	glm::uvec2 dimensions;	// size of display
@@ -48,24 +101,36 @@ public:
 			ZeroBuffer();
 			Draw();
 		}
+
+		// DrawRectRandom( glm::uvec2( 65, 32 ), glm::uvec2( 175, 45 ), BLUE );
+		// DrawRandomChars( 100 );
+
+		rgd.Update();
+		WriteString( rgd.displayBase, rgd.displayBase + rgd.displaySize, rgd.displayString, BLUE );
+		// WriteCharAt( rgd.displayBase + rgd.displaySize / 2u, coloredChar( GOLD, 153 ) );
+		WriteCharAt( rgd.displayBase + rgd.displaySize / 2u, coloredChar( GOLD, 2 ) );
+
 		// send the data to the GPU
 		if ( updateFlag ) {
 			ResendData();
 		}
+
+
 	}
 
 	void Draw () {
 		DrawDoubleFrame( glm::uvec2( 0, 0 ), glm::uvec2( bufferSize.x - 1, bufferSize.y - 1 ), GOLD );
-		DrawDoubleFrame( glm::uvec2( 10, 10 ), glm::uvec2( 65, 24 ), BLUE );
-		DrawRandomChars( 1000 );
-		DrawDoubleFrame( glm::uvec2( 50, 18 ), glm::uvec2( 100, 36 ), GOLD );
-		DrawRandomChars( 1000 );
-		DrawRectRandom( glm::uvec2( 65, 32 ), glm::uvec2( 175, 45 ), BLUE );
-		DrawRandomChars( 100 );
-		WriteString( glm::uvec2( 100, 10 ), glm::uvec2( 180, 30 ), std::string( "This is a string being written, get written, string - string string string string string string string Get Stringed, idiot string go and get stringed - This is a string being written, get written, string - string string string string string string string Get Stringed, idiot string go and get stringed - This is a string being written, get written, string - string string string string string string string Get Stringed, idiot string go and get stringed - This is a string being written, get written, string - string string string string string string string Get Stringed, idiot string go and get stringed - This is a string being written, get written, string - string string string string string string string Get Stringed, idiot string go and get stringed" ), GOLD );
+		// DrawDoubleFrame( glm::uvec2( 10, 10 ), glm::uvec2( 65, 24 ), BLUE );
+		// DrawRandomChars( 1000 );
+		// DrawDoubleFrame( glm::uvec2( 50, 18 ), glm::uvec2( 100, 36 ), GOLD );
+		// DrawRandomChars( 1000 );
+		// DrawRectRandom( glm::uvec2( 65, 32 ), glm::uvec2( 175, 45 ), BLUE );
+		// DrawRandomChars( 100 );
+		// WriteString( glm::uvec2( 100, 10 ), glm::uvec2( 180, 30 ), std::string( "This is a string being written, get written, string - string string string string string string string Get Stringed, idiot string go and get stringed - This is a\n\t string being written, get written, string - string string string string string string string Get Stringed, idiot string go and get stringed - This is a string being written,\n\t get written, string - string string string string string string string Get Stringed, idiot string go and get stringed - This is a string being\n written, get written,\n string - string string string string string string string Get Stringed, idiot string go and get stringed - This is a string being written, get written, string - string string string string string string string Get Stringed, idiot string go and get stringed" ), GOLD );
 	}
 
 	void DrawRandomChars ( int n ) {
+		updateFlag = true;
 		std::random_device r;
 		std::seed_seq s{ r(), r(), r(), r(), r(), r(), r(), r(), r() };
 		auto gen = std::mt19937_64( s );
@@ -77,6 +142,7 @@ public:
 	}
 
 	void DrawDoubleFrame ( glm::uvec2 min, glm::uvec2 max, glm::ivec3 color ) {
+		updateFlag = true;
 		WriteCharAt( min, coloredChar( color, TOP_LEFT_DOUBLE_CORNER ) );
 		WriteCharAt( glm::uvec2( max.x, min.y ), coloredChar( color, TOP_RIGHT_DOUBLE_CORNER ) );
 		WriteCharAt( glm::uvec2( min.x, max.y ), coloredChar( color, BOTTOM_LEFT_DOUBLE_CORNER ) );
@@ -92,6 +158,7 @@ public:
 	}
 
 	void DrawRectRandom ( glm::uvec2 min, glm::uvec2 max, glm::ivec3 color ) {
+		updateFlag = true;
 		std::random_device r;
 		std::seed_seq s{ r(), r(), r(), r(), r(), r(), r(), r(), r() };
 		auto gen = std::mt19937_64( s );
@@ -106,10 +173,23 @@ public:
 	}
 
 	void WriteString ( glm::uvec2 min, glm::uvec2 max, std::string str, glm::ivec3 color ) {
+		updateFlag = true;
 		glm::uvec2 cursor = min;
 		for ( auto c : str ) {
-			WriteCharAt( cursor, coloredChar( color, ( unsigned char )( c ) ) );
-			cursor.x++;
+			if ( c == '\t' ) {
+				cursor.x += 2;
+			} else if ( c == '\n' ) {
+				cursor.y++;
+				cursor.x = min.x;
+				if ( cursor.y >= max.y ) {
+					break;
+				}
+			} else if ( c == 0 ) { // null character, don't draw anything - can use 32 aka space to overwrite with blank
+				cursor.x++;
+			} else {
+				WriteCharAt( cursor, coloredChar( color, ( unsigned char )( c ) ) );
+				cursor.x++;
+			}
 			if ( cursor.x >= max.x ) {
 				cursor.y++;
 				cursor.x = min.x;
@@ -134,14 +214,14 @@ public:
 	}
 
 	coloredChar GetCharAt ( glm::uvec2 position ) {
-		if ( position.x >= 0 && position.x < bufferSize.x && position.y >= 0 && position.y < bufferSize.y )
+		if ( position.x < bufferSize.x && position.y < bufferSize.y ) // >= 0 is implicit with unsigned
 			return *( bufferBase + sizeof( coloredChar ) * ( position.x + position.y * bufferSize.x ) );
 		else
 			return coloredChar();
 	}
 
 	void WriteCharAt ( glm::uvec2 position, coloredChar c ) {
-		if ( position.x >= 0 && position.x < bufferSize.x && position.y >= 0 && position.y < bufferSize.y ) {
+		if ( position.x < bufferSize.x && position.y < bufferSize.y ) {
 			int index = position.x + position.y * bufferSize.x;
 			bufferBase[ index ] = c;
 		}
