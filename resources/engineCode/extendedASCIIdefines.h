@@ -28,4 +28,7 @@
 
 // some colors
 #define GOLD glm::ivec3( 191, 146, 23 )
+#define GREEN glm::ivec3( 100, 186, 20 )
 #define BLUE glm::ivec3( 50, 103, 184 )
+#define WHITE glm::ivec3( 245, 245, 245 )
+#define GREY glm::ivec3( 169, 169, 169 )

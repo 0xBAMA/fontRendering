@@ -74,6 +74,7 @@ public:
 	void DrawRandomChars ( int n );
 	void DrawDoubleFrame ( glm::uvec2 min, glm::uvec2 max, glm::ivec3 color );
 	void DrawSingleFrame ( glm::uvec2 min, glm::uvec2 max, glm::ivec3 color );
+	void DrawCurlyScroll ( glm::uvec2 start, unsigned int length, glm::ivec3 color );
 	void DrawRectRandom ( glm::uvec2 min, glm::uvec2 max, glm::ivec3 color );
 	void WriteString ( glm::uvec2 min, glm::uvec2 max, std::string str, glm::ivec3 color );
 	void WriteColoredCharVector ( glm::uvec2 min, glm::uvec2 max, std::vector< coloredChar > vec );
@@ -94,6 +95,10 @@ public:
 	void ResendData ();
 
 private:
+	// TODO: multiple layers, drawing over one another -
+		// would look better to have layered chars in some circumstances
+
+
 	// malloc/free version - can be used directly for texture
 	coloredChar * bufferBase = nullptr;
 };

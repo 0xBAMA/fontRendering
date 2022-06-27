@@ -34,20 +34,19 @@ void roguelikeGameDisplay::PrepareDisplayVector () {
 	for( unsigned int y = 0; y < displaySize.y; y++ ) {
 		for( unsigned int x = 0; x < displaySize.x; x++ ) {
 			glm::vec2 samplePoint = ( glm::vec2( playerLocation ) + glm::vec2( x, y ) - offset ) * scaleFactor;
-			displayVector.push_back( coloredChar( GOLD, fills[ std::clamp( static_cast< int >( ws.GetNoise( samplePoint ) * 8 - 1 ), 0, 4 ) ] ) );
+			displayVector.push_back( coloredChar( GREEN, fills[ std::clamp( static_cast< int >( ws.GetNoise( samplePoint ) * 8 - 1 ), 0, 4 ) ] ) );
 		}
 	}
 }
 
 // TEXTBUFFER
+// TODO: character movement functions need to check for obstruction
 void textBuffer::moveCharacterRight () {
 	rgd.playerLocation.x++;
 }
-
 void textBuffer::moveCharacterLeft () {
 	rgd.playerLocation.x--;
 }
-
 // halving movement speed on the y, due to the size of the tiles
 void textBuffer::moveCharacterUp () {
 	static bool toggle = false;
@@ -55,7 +54,6 @@ void textBuffer::moveCharacterUp () {
 		rgd.playerLocation.y--;
 	toggle = !toggle;
 }
-
 void textBuffer::moveCharacterDown () {
 	static bool toggle = false;
 	if ( toggle )
@@ -81,7 +79,10 @@ void textBuffer::Update () {
 		// noise field in displayString
 		WriteColoredCharVector( rgd.displayBase, rgd.displayBase + rgd.displaySize, rgd.displayVector );
 		// character at center of the noise display
-		WriteCharAt( rgd.displayBase + rgd.displaySize / 2u, coloredChar( GOLD, 2 ) );
+		// WriteCharAt( rgd.displayBase + rgd.displaySize / 2u, coloredChar( GOLD, 2 ) );
+		WriteCharAt( rgd.displayBase + rgd.displaySize / 2u, coloredChar( GOLD, 234 ) );
+		// DrawDoubleFrame( glm::uvec2( 135, 4 ), glm::uvec2( 180, 24 ), GREY );
+		// DrawCurlyScroll( glm::uvec2( 135, 2 ), 24, WHITE );
 	}
 	// send the data to the GPU
 	if ( updateFlag ) {
@@ -92,8 +93,7 @@ void textBuffer::Update () {
 void textBuffer::Draw () {
 	DrawDoubleFrame( glm::uvec2( 0, 0 ), glm::uvec2( bufferSize.x - 1, bufferSize.y - 1 ), GOLD );
 }
-
-void textBuffer::textBuffer::DrawRandomChars ( int n ) {
+void textBuffer::DrawRandomChars ( int n ) {
 	updateFlag = true;
 	std::random_device r;
 	std::seed_seq s{ r(), r(), r(), r(), r(), r(), r(), r(), r() };
@@ -104,7 +104,6 @@ void textBuffer::textBuffer::DrawRandomChars ( int n ) {
 	for ( int i = 0; i < n; i++ )
 		WriteCharAt( glm::uvec2( xDist( gen ), yDist( gen ) ), coloredChar( glm::ivec3( cDist( gen ), cDist( gen ), cDist( gen ) ), cDist( gen ) ) );
 }
-
 void textBuffer::DrawDoubleFrame ( glm::uvec2 min, glm::uvec2 max, glm::ivec3 color ) {
 	updateFlag = true;
 	WriteCharAt( min, coloredChar( color, TOP_LEFT_DOUBLE_CORNER ) );
@@ -120,7 +119,6 @@ void textBuffer::DrawDoubleFrame ( glm::uvec2 min, glm::uvec2 max, glm::ivec3 co
 		WriteCharAt( glm::uvec2( max.x, y ), coloredChar( color, VERTICAL_DOUBLE ) );
 	}
 }
-
 void textBuffer::DrawSingleFrame ( glm::uvec2 min, glm::uvec2 max, glm::ivec3 color ) {
 	updateFlag = true;
 	WriteCharAt( min, coloredChar( color, TOP_LEFT_SINGLE_CORNER ) );
@@ -136,7 +134,13 @@ void textBuffer::DrawSingleFrame ( glm::uvec2 min, glm::uvec2 max, glm::ivec3 co
 		WriteCharAt( glm::uvec2( max.x, y ), coloredChar( color, VERTICAL_SINGLE ) );
 	}
 }
-
+void textBuffer::DrawCurlyScroll ( glm::uvec2 start, unsigned int length, glm::ivec3 color ) {
+	WriteCharAt( start, coloredChar( color, CURLY_SCROLL_TOP ) );
+	for ( unsigned int i = 1; i < length; i++ ) {
+		WriteCharAt( start + glm::uvec2( 0, i ), coloredChar ( color, CURLY_SCROLL_MIDDLE ) );
+	}
+	WriteCharAt( start + glm::uvec2( 0, length ), coloredChar( color, CURLY_SCROLL_BOTTOM ) );
+}
 void textBuffer::DrawRectRandom ( glm::uvec2 min, glm::uvec2 max, glm::ivec3 color ) {
 	updateFlag = true;
 	std::random_device r;
@@ -151,7 +155,6 @@ void textBuffer::DrawRectRandom ( glm::uvec2 min, glm::uvec2 max, glm::ivec3 col
 		}
 	}
 }
-
 void textBuffer::WriteString ( glm::uvec2 min, glm::uvec2 max, std::string str, glm::ivec3 color ) {
 	updateFlag = true;
 	glm::uvec2 cursor = min;
@@ -179,7 +182,6 @@ void textBuffer::WriteString ( glm::uvec2 min, glm::uvec2 max, std::string str, 
 		}
 	}
 }
-
 void textBuffer::WriteColoredCharVector ( glm::uvec2 min, glm::uvec2 max, std::vector< coloredChar > vec ) {
 	updateFlag = true;
 	glm::uvec2 cursor = min;
@@ -207,7 +209,6 @@ void textBuffer::WriteColoredCharVector ( glm::uvec2 min, glm::uvec2 max, std::v
 		}
 	}
 }
-
 void textBuffer::ResetBuffer () {
 	if ( bufferBase != nullptr )
 		free( bufferBase );	// deallocate the memory for the buffer
@@ -215,26 +216,22 @@ void textBuffer::ResetBuffer () {
 	bufferBase = ( coloredChar * ) malloc( numBytes ); // allocate a new buffer of the new size
 	updateFlag = true;
 }
-
 void textBuffer::ZeroBuffer () {
 	size_t numBytes = sizeof( coloredChar ) * bufferSize.x * bufferSize.y;
 	memset( ( void * ) bufferBase, 0, numBytes );
 }
-
 coloredChar textBuffer::GetCharAt ( glm::uvec2 position ) {
 	if ( position.x < bufferSize.x && position.y < bufferSize.y ) // >= 0 is implicit with unsigned
 		return *( bufferBase + sizeof( coloredChar ) * ( position.x + position.y * bufferSize.x ) );
 	else
 		return coloredChar();
 }
-
 void textBuffer::WriteCharAt ( glm::uvec2 position, coloredChar c ) {
 	if ( position.x < bufferSize.x && position.y < bufferSize.y ) {
 		int index = position.x + position.y * bufferSize.x;
 		bufferBase[ index ] = c;
 	}
 }
-
 void textBuffer::ResendData() {
 	updateFlag = false;
 	glBindTexture( GL_TEXTURE_2D, dataTexture );
