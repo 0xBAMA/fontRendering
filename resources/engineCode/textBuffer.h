@@ -35,14 +35,14 @@ public:
 	bool Update ();
 	// centerpoint of the display
 	glm::ivec2 playerLocation = glm::ivec2( 0, 0 );
-	// access from above for the display - need to figure out colors, too
-	std::string displayString;
+	// access from above for the display - includes colors now
+	std::vector< coloredChar > displayVector;
 	// allows the displayString to be used directly by the textBuffer
 	glm::uvec2 displayBase = glm::uvec2( 4, 2 );
 	glm::uvec2 displaySize = glm::uvec2( 182, 53 );
 private:
 	float scaleFactor = 0.01f;
-	void PrepareDisplayString ();
+	void PrepareDisplayVector ();
 	worldState ws;
 };
 
@@ -76,6 +76,7 @@ public:
 	void DrawSingleFrame ( glm::uvec2 min, glm::uvec2 max, glm::ivec3 color );
 	void DrawRectRandom ( glm::uvec2 min, glm::uvec2 max, glm::ivec3 color );
 	void WriteString ( glm::uvec2 min, glm::uvec2 max, std::string str, glm::ivec3 color );
+	void WriteColoredCharVector ( glm::uvec2 min, glm::uvec2 max, std::vector< coloredChar > vec );
 
 	void moveCharacterRight ();
 	void moveCharacterLeft ();

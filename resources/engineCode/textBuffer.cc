@@ -19,25 +19,25 @@ bool roguelikeGameDisplay::Update () {
 	static glm::ivec2 previousPlayerLocation = glm::ivec2( -1, -1 );
 	if ( playerLocation != previousPlayerLocation ) {
 		previousPlayerLocation = playerLocation;
-		PrepareDisplayString();
+		PrepareDisplayVector();
 		return true;
 	}
 	return false;
 }
 
-void roguelikeGameDisplay::PrepareDisplayString () {
+void roguelikeGameDisplay::PrepareDisplayVector () {
 	// construct 2d representation in the displayString
-	displayString = std::string();
+	displayVector.clear();
+	displayVector.reserve( displaySize.x * displaySize.y );
 	const glm::vec2 offset = ( displaySize / 2u );
 	const unsigned char fills[ 5 ] = { FILL_0, FILL_25, FILL_50, FILL_75, FILL_100 };
 	for( unsigned int y = 0; y < displaySize.y; y++ ) {
 		for( unsigned int x = 0; x < displaySize.x; x++ ) {
 			glm::vec2 samplePoint = ( glm::vec2( playerLocation ) + glm::vec2( x, y ) - offset ) * scaleFactor;
-			displayString += fills[ std::clamp( static_cast< int >( ws.GetNoise( samplePoint ) * 8 - 1 ), 0, 4 ) ];
+			displayVector.push_back( coloredChar( GOLD, fills[ std::clamp( static_cast< int >( ws.GetNoise( samplePoint ) * 8 - 1 ), 0, 4 ) ] ) );
 		}
 	}
 }
-
 
 // TEXTBUFFER
 void textBuffer::moveCharacterRight () {
@@ -79,7 +79,7 @@ void textBuffer::Update () {
 	// update displayString
 	if ( rgd.Update() ) {
 		// noise field in displayString
-		WriteString( rgd.displayBase, rgd.displayBase + rgd.displaySize, rgd.displayString, BLUE );
+		WriteColoredCharVector( rgd.displayBase, rgd.displayBase + rgd.displaySize, rgd.displayVector );
 		// character at center of the noise display
 		WriteCharAt( rgd.displayBase + rgd.displaySize / 2u, coloredChar( GOLD, 2 ) );
 	}
@@ -168,6 +168,34 @@ void textBuffer::WriteString ( glm::uvec2 min, glm::uvec2 max, std::string str, 
 			cursor.x++;
 		} else {
 			WriteCharAt( cursor, coloredChar( color, ( unsigned char )( c ) ) );
+			cursor.x++;
+		}
+		if ( cursor.x >= max.x ) {
+			cursor.y++;
+			cursor.x = min.x;
+			if ( cursor.y >= max.y ) {
+				break;
+			}
+		}
+	}
+}
+
+void textBuffer::WriteColoredCharVector ( glm::uvec2 min, glm::uvec2 max, std::vector< coloredChar > vec ) {
+	updateFlag = true;
+	glm::uvec2 cursor = min;
+	for ( unsigned int i = 0; i < vec.size(); i++ ) {
+		if ( vec[ i ].data[ 4 ] == '\t' ) {
+			cursor.x += 2;
+		} else if ( vec[ i ].data[ 4 ] == '\n' ) {
+			cursor.y++;
+			cursor.x = min.x;
+			if ( cursor.y >= max.y ) {
+				break;
+			}
+		} else if ( vec[ i ].data[ 4 ] == 0 ) { // special no-write character
+			cursor.x++;
+		} else {
+			WriteCharAt( cursor, vec[ i ] );
 			cursor.x++;
 		}
 		if ( cursor.x >= max.x ) {
