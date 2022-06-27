@@ -45,4 +45,7 @@ void main() {
 
 	// int idx = characterIndex.x + characterIndex.y * numChars.x;
 	// fragmentOutput = texture( currentFont, vec2(  positionOnCharacter.x / characterAtlasDimensions.x, ( float( idx ) + positionOnCharacter.y ) / characterAtlasDimensions.y ) );
+
+	// fragmentOutput.xy = positionOnCharacter;
+	// fragmentOutput.zw = vec2( 0.0, 1.0 );
 }

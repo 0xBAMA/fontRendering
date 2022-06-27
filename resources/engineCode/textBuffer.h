@@ -24,7 +24,7 @@ public:
 		auto fnSimplex = FastNoise::New<FastNoise::Simplex>();
 		auto fnFractal = FastNoise::New<FastNoise::FractalFBm>();
 		fnFractal->SetSource( fnSimplex );
-		fnFractal->SetOctaveCount( 2 );
+		fnFractal->SetOctaveCount( 4 );
 		fnGenerator = fnFractal;
 	}
 
@@ -44,14 +44,16 @@ public:
 	std::string displayString;
 	// allows the displayString to be used directly by the textBuffer
 	glm::uvec2 displayBase = glm::uvec2( 4, 2 );
-	glm::uvec2 displaySize = glm::uvec2( 130, 53 );
+	glm::uvec2 displaySize = glm::uvec2( 182, 53 );
 
-	void Update () {
+	bool Update () {
 		static glm::ivec2 previousPlayerLocation = glm::ivec2( -1, -1 );
 		if ( playerLocation != previousPlayerLocation ) {
 			previousPlayerLocation = playerLocation;
 			PrepareDisplayString();
+			return true;
 		}
+		return false;
 	}
 
 private:
@@ -60,10 +62,11 @@ private:
 		displayString = std::string();
 		const float scaleFactor = 0.01f;
 		const glm::vec2 offset = ( displaySize / 2u );
+		const unsigned char fills[ 5 ] = { FILL_0, FILL_25, FILL_50, FILL_75, FILL_100 };
 		for( unsigned int y = 0; y < displaySize.y; y++ ) {
 			for( unsigned int x = 0; x < displaySize.x; x++ ) {
 				glm::vec2 samplePoint = ( glm::vec2( playerLocation ) + glm::vec2( x, y ) - offset ) * scaleFactor;
-				displayString += static_cast< unsigned char >( noise.GetNoise( samplePoint ) * 32 + 166 );
+				displayString += fills[ std::clamp( static_cast< int >( noise.GetNoise( samplePoint ) * 8 - 1 ), 0, 4 ) ];
 			}
 		}
 	}
@@ -105,10 +108,16 @@ public:
 		// DrawRectRandom( glm::uvec2( 65, 32 ), glm::uvec2( 175, 45 ), BLUE );
 		// DrawRandomChars( 100 );
 
-		rgd.Update();
-		WriteString( rgd.displayBase, rgd.displayBase + rgd.displaySize, rgd.displayString, BLUE );
-		// WriteCharAt( rgd.displayBase + rgd.displaySize / 2u, coloredChar( GOLD, 153 ) );
-		WriteCharAt( rgd.displayBase + rgd.displaySize / 2u, coloredChar( GOLD, 2 ) );
+		// update displayString
+		if ( rgd.Update() ) {
+			// noise field in displayString
+			WriteString( rgd.displayBase, rgd.displayBase + rgd.displaySize, rgd.displayString, BLUE );
+
+			// character at center of the noise display
+			WriteCharAt( rgd.displayBase + rgd.displaySize / 2u, coloredChar( GOLD, 2 ) );
+		}
+
+
 
 		// send the data to the GPU
 		if ( updateFlag ) {
@@ -120,13 +129,7 @@ public:
 
 	void Draw () {
 		DrawDoubleFrame( glm::uvec2( 0, 0 ), glm::uvec2( bufferSize.x - 1, bufferSize.y - 1 ), GOLD );
-		// DrawDoubleFrame( glm::uvec2( 10, 10 ), glm::uvec2( 65, 24 ), BLUE );
-		// DrawRandomChars( 1000 );
-		// DrawDoubleFrame( glm::uvec2( 50, 18 ), glm::uvec2( 100, 36 ), GOLD );
-		// DrawRandomChars( 1000 );
-		// DrawRectRandom( glm::uvec2( 65, 32 ), glm::uvec2( 175, 45 ), BLUE );
-		// DrawRandomChars( 100 );
-		// WriteString( glm::uvec2( 100, 10 ), glm::uvec2( 180, 30 ), std::string( "This is a string being written, get written, string - string string string string string string string Get Stringed, idiot string go and get stringed - This is a\n\t string being written, get written, string - string string string string string string string Get Stringed, idiot string go and get stringed - This is a string being written,\n\t get written, string - string string string string string string string Get Stringed, idiot string go and get stringed - This is a string being\n written, get written,\n string - string string string string string string string Get Stringed, idiot string go and get stringed - This is a string being written, get written, string - string string string string string string string Get Stringed, idiot string go and get stringed" ), GOLD );
+		// DrawSingleFrame( glm::uvec2( 0, 0 ), glm::uvec2( bufferSize.x - 1, bufferSize.y - 1 ), GOLD );
 	}
 
 	void DrawRandomChars ( int n ) {
@@ -157,13 +160,29 @@ public:
 		}
 	}
 
+	void DrawSingleFrame ( glm::uvec2 min, glm::uvec2 max, glm::ivec3 color ) {
+		updateFlag = true;
+		WriteCharAt( min, coloredChar( color, TOP_LEFT_SINGLE_CORNER ) );
+		WriteCharAt( glm::uvec2( max.x, min.y ), coloredChar( color, TOP_RIGHT_SINGLE_CORNER ) );
+		WriteCharAt( glm::uvec2( min.x, max.y ), coloredChar( color, BOTTOM_LEFT_SINGLE_CORNER ) );
+		WriteCharAt( max, coloredChar( color, BOTTOM_RIGHT_SINGLE_CORNER ) );
+		for( unsigned int x = min.x + 1; x < max.x; x++  ){
+			WriteCharAt( glm::uvec2( x, min.y ), coloredChar( color, HORIZONTAL_SINGLE ) );
+			WriteCharAt( glm::uvec2( x, max.y ), coloredChar( color, HORIZONTAL_SINGLE ) );
+		}
+		for( unsigned int y = min.y + 1; y < max.y; y++  ){
+			WriteCharAt( glm::uvec2( min.x, y ), coloredChar( color, VERTICAL_SINGLE ) );
+			WriteCharAt( glm::uvec2( max.x, y ), coloredChar( color, VERTICAL_SINGLE ) );
+		}
+	}
+
 	void DrawRectRandom ( glm::uvec2 min, glm::uvec2 max, glm::ivec3 color ) {
 		updateFlag = true;
 		std::random_device r;
 		std::seed_seq s{ r(), r(), r(), r(), r(), r(), r(), r(), r() };
 		auto gen = std::mt19937_64( s );
 		std::uniform_int_distribution< unsigned char > fDist( 0, 4 );
-		unsigned char fills[ 5 ] = { FILL_0, FILL_25, FILL_50, FILL_75, FILL_100 };
+		const unsigned char fills[ 5 ] = { FILL_0, FILL_25, FILL_50, FILL_75, FILL_100 };
 
 		for( unsigned int x = min.x; x <= max.x; x++ ) {
 			for( unsigned int y = min.y; y <= max.y; y++ ) {
@@ -234,6 +253,10 @@ public:
 		updateFlag = false;
 		glBindTexture( GL_TEXTURE_2D, dataTexture );
 		glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA8, bufferSize.x, bufferSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, bufferBase );
+	}
+
+	~textBuffer(){
+		free( bufferBase );
 	}
 
 private:
