@@ -18,9 +18,14 @@ struct coloredChar {
 	}
 };
 
-struct fieldGenerator {
+struct worldSample {
+	bool obstruction = false;
+	coloredChar representation;
+};
+
+struct worldState {
 public:
-	fieldGenerator ();
+	worldState ();
 	float GetNoise ( glm::vec2 position );
 	FastNoise::SmartNode<> fnGenerator;
 };
@@ -36,8 +41,9 @@ public:
 	glm::uvec2 displayBase = glm::uvec2( 4, 2 );
 	glm::uvec2 displaySize = glm::uvec2( 182, 53 );
 private:
+	float scaleFactor = 0.01f;
 	void PrepareDisplayString ();
-	fieldGenerator noise;
+	worldState ws;
 };
 
 class textBuffer {
@@ -70,6 +76,11 @@ public:
 	void DrawSingleFrame ( glm::uvec2 min, glm::uvec2 max, glm::ivec3 color );
 	void DrawRectRandom ( glm::uvec2 min, glm::uvec2 max, glm::ivec3 color );
 	void WriteString ( glm::uvec2 min, glm::uvec2 max, std::string str, glm::ivec3 color );
+
+	void moveCharacterRight ();
+	void moveCharacterLeft ();
+	void moveCharacterDown ();
+	void moveCharacterUp ();
 
 	void ResetBuffer ();
 	void ZeroBuffer ();

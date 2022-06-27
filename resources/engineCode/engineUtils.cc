@@ -89,24 +89,8 @@ void engine::handleEvents() {
 
 	const uint8_t *state = SDL_GetKeyboardState( NULL );
 
-	if ( state[ SDL_SCANCODE_RIGHT ] )
-		buffer.rgd.playerLocation.x++;
-
-	if ( state[ SDL_SCANCODE_LEFT ] )
-		buffer.rgd.playerLocation.x--;
-
-	// halving movement speed on the y, due to the size of the tiles 
-	if ( state[ SDL_SCANCODE_UP ] ) {
-		static bool toggle = false;
-		if ( toggle )
-			buffer.rgd.playerLocation.y--;
-		toggle = !toggle;
-	}
-
-	if ( state[ SDL_SCANCODE_DOWN ] ) {
-		static bool toggle = false;
-		if ( toggle )
-			buffer.rgd.playerLocation.y++;
-		toggle = !toggle;
-	}
+	if ( state[ SDL_SCANCODE_RIGHT ] )	buffer.moveCharacterRight();
+	if ( state[ SDL_SCANCODE_LEFT ] )		buffer.moveCharacterLeft();
+	if ( state[ SDL_SCANCODE_UP ] )			buffer.moveCharacterUp();
+	if ( state[ SDL_SCANCODE_DOWN ] )		buffer.moveCharacterDown();
 }

@@ -1,7 +1,7 @@
 #include "textBuffer.h"
 
-// FIELDGENERATOR
-fieldGenerator::fieldGenerator () {
+// worldState
+worldState::worldState () {
 	auto fnSimplex = FastNoise::New<FastNoise::Simplex>();
 	auto fnFractal = FastNoise::New<FastNoise::FractalFBm>();
 	fnFractal->SetSource( fnSimplex );
@@ -9,7 +9,7 @@ fieldGenerator::fieldGenerator () {
 	fnGenerator = fnFractal;
 }
 
-float fieldGenerator::GetNoise ( glm::vec2 position ) {
+float worldState::GetNoise ( glm::vec2 position ) {
 	int seed = 42069;
 	return ( fnGenerator->GenSingle2D( position.x, position.y * 2.0f, seed ) + 1.0f ) * 0.5f;
 }
@@ -28,19 +28,41 @@ bool roguelikeGameDisplay::Update () {
 void roguelikeGameDisplay::PrepareDisplayString () {
 	// construct 2d representation in the displayString
 	displayString = std::string();
-	const float scaleFactor = 0.01f;
 	const glm::vec2 offset = ( displaySize / 2u );
 	const unsigned char fills[ 5 ] = { FILL_0, FILL_25, FILL_50, FILL_75, FILL_100 };
 	for( unsigned int y = 0; y < displaySize.y; y++ ) {
 		for( unsigned int x = 0; x < displaySize.x; x++ ) {
 			glm::vec2 samplePoint = ( glm::vec2( playerLocation ) + glm::vec2( x, y ) - offset ) * scaleFactor;
-			displayString += fills[ std::clamp( static_cast< int >( noise.GetNoise( samplePoint ) * 8 - 1 ), 0, 4 ) ];
+			displayString += fills[ std::clamp( static_cast< int >( ws.GetNoise( samplePoint ) * 8 - 1 ), 0, 4 ) ];
 		}
 	}
 }
 
 
 // TEXTBUFFER
+void textBuffer::moveCharacterRight () {
+	rgd.playerLocation.x++;
+}
+
+void textBuffer::moveCharacterLeft () {
+	rgd.playerLocation.x--;
+}
+
+// halving movement speed on the y, due to the size of the tiles
+void textBuffer::moveCharacterUp () {
+	static bool toggle = false;
+	if ( toggle )
+		rgd.playerLocation.y--;
+	toggle = !toggle;
+}
+
+void textBuffer::moveCharacterDown () {
+	static bool toggle = false;
+	if ( toggle )
+		rgd.playerLocation.y++;
+	toggle = !toggle;
+}
+
 void textBuffer::Update () {
 	// check for buffer resize
 	static glm::uvec2 lastUpdateBufferSize = bufferSize;
