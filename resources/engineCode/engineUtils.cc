@@ -7,6 +7,13 @@ bool engine::mainLoop() {
 	// clear the screen and depth buffer
 	clear();
 
+	// setup for fullscreen triangle
+	ImGuiIO &io = ImGui::GetIO();
+	glUseProgram( displayShader );
+	glBindVertexArray( displayVAO );
+	glUniform2f( glGetUniformLocation( displayShader, "resolution" ), io.DisplaySize.x, io.DisplaySize.y );
+	glViewport(0, 0, (int)io.DisplaySize.x, (int)io.DisplaySize.y);
+
 	// update the buffers + draw
 	manager.Update();
 	manager.DrawAllLayers();

@@ -56,6 +56,7 @@ public:
 	GLuint textureHandle;
 	bool bufferDirty;
 	coloredChar * bufferBase = nullptr;
+	GLint offsetUniformLocation;
 
 	void ClearBuffer ();
 	coloredChar GetCharAt ( glm::uvec2 position );
@@ -121,9 +122,10 @@ public:
 	std::vector < Layer > layers;
 	roguelikeGameDisplay rgd;
 
-	TextBufferManager ( glm::uvec2 screenDimensions);
+	TextBufferManager ( glm::uvec2 screenDimensions );
 	~TextBufferManager ();
 
+	void Populate ();
 	void Update ();
 	void DrawAllLayers ();
 

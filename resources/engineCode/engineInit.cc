@@ -107,6 +107,8 @@ void engine::createWindowAndContext() {
 	glBindTexture( GL_TEXTURE_2D, atlasTexture );
 	glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA8, imageWidth, imageHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, &imageData[ 0 ] );
 	glBindImageTexture( 0, atlasTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8UI );
+
+	manager.Populate();
 }
 
 void engine::computeShaderCompile() {

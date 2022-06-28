@@ -62,14 +62,15 @@ Layer::Layer ( glm::uvec2 bSize, glm::ivec2 bOffset ) {
 	bufferSize = bSize;
 	bufferOffset = bOffset;
 	glGenTextures( 1, &textureHandle ); // get a new texture handle from OpenGL
+
 	// allocate a new buffer of the specified size
 	size_t numBytes = sizeof( coloredChar ) * bufferSize.x * bufferSize.y;
 	bufferBase = ( coloredChar * ) malloc( numBytes );
 	bufferDirty = true; // data will need to be resent next frame
 }
 Layer::~Layer () {
-	if ( bufferBase != nullptr )
-		free( bufferBase );	// deallocate the memory for the buffer
+	// if ( bufferBase != nullptr )
+	// 	free( bufferBase );	// deallocate the memory for the buffer
 }
 void Layer::ClearBuffer () {
 	size_t numBytes = sizeof( coloredChar ) * bufferSize.x * bufferSize.y;
@@ -205,7 +206,7 @@ void Layer::DrawRectRandom ( glm::uvec2 min, glm::uvec2 max, glm::ivec3 color ) 
 	}
 }
 void Layer::BindAndSendUniforms () {
-	// glUniform2i( offsetUniformLocation, bufferOffset.x, bufferOffset.y );
+	glUniform2i( offsetUniformLocation, bufferOffset.x, bufferOffset.y );
 	glActiveTexture( GL_TEXTURE1 );
 	glBindTexture( GL_TEXTURE_2D, textureHandle );
 	if ( bufferDirty ) {
@@ -223,12 +224,24 @@ TextBufferManager::TextBufferManager ( glm::uvec2 screenDimensions ) {
 TextBufferManager::~TextBufferManager () {
 
 }
-void TextBufferManager::Update () {
-	// glUniform2i( displayUniformLocation, displaySize.x, displaySize.y );
 
+void TextBufferManager::Populate () {
+	for ( int i = 0; i < 4; i++ ) {
+		layers.push_back( Layer( glm::uvec2( 65, 65 ), glm::ivec2( 20 * i, 20 + 5 * i  ) ) );
+		layers[ i ].offsetUniformLocation = offsetUniformLocation;
+	}
+	layers[ 0 ].DrawRectRandom( glm::uvec2( 0, 0 ), glm::uvec2( 49, 49 ), GOLD );
+	layers[ 1 ].DrawRectRandom( glm::uvec2( 0, 0 ), glm::uvec2( 49, 49 ), GREEN );
+	layers[ 2 ].DrawRectRandom( glm::uvec2( 0, 0 ), glm::uvec2( 49, 49 ), BLUE );
+	layers[ 3 ].DrawRectRandom( glm::uvec2( 0, 0 ), glm::uvec2( 49, 49 ), WHITE );
+}
+void TextBufferManager::Update () {
+	glUniform2i( displayUniformLocation, displaySize.x, displaySize.y );
+	layers[ 2 ].DrawRandomChars( 22 );
 }
 void TextBufferManager::DrawAllLayers () {
-	// iterate through layers
-		// call BindAndSendUniforms () to prepare state for layer draw
-		// draw the fullscreen triangle
+	for ( unsigned int i = 0; i < layers.size(); i++ ) {
+		layers[ i ].BindAndSendUniforms();
+		glDrawArrays( GL_TRIANGLES, 0, 3 );
+	}
 }
