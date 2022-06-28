@@ -2,7 +2,7 @@
 
 void engine::startMessage() {
 	cout << endl << T_YELLOW << BOLD << "NQADE - Not Quite A Demo Engine" << endl;
-	cout << " By Jon Baker ( 2020 - 2021 ) " << RESET << endl;
+	cout << " By Jon Baker ( 2020 - 2022 ) " << RESET << endl;
 	cout << "  https://jbaker.graphics/ " << endl << endl;
 }
 
@@ -71,6 +71,8 @@ void engine::createWindowAndContext() {
 
 	// create the shader for the triangles to cover the screen
 	displayShader = Shader( "resources/engineCode/shaders/blit.vs.glsl", "resources/engineCode/shaders/blit.fs.glsl" ).Program;
+	manager.offsetUniformLocation = glGetUniformLocation( displayShader, "offset" );
+	manager.displayUniformLocation = glGetUniformLocation( displayShader, "numChars" );
 
 	// have to have dummy call to this - core requires a VAO bound when calling glDrawArrays, otherwise it complains
 	glGenVertexArrays( 1, &displayVAO );
@@ -105,24 +107,6 @@ void engine::createWindowAndContext() {
 	glBindTexture( GL_TEXTURE_2D, atlasTexture );
 	glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA8, imageWidth, imageHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, &imageData[ 0 ] );
 	glBindImageTexture( 0, atlasTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8UI );
-
-	// fill data texture with random values
-	imageData.resize( buffer.dimensions.x * buffer.dimensions.y * 4 );
-	std::default_random_engine gen;
-	std::uniform_int_distribution<uint8_t> dist( 0, 255 );
-
-	for ( auto it = imageData.begin(); it != imageData.end(); it++ )
-		*it = dist( gen );
-
-	glGenTextures( 1, &dataTexture );
-	glActiveTexture( GL_TEXTURE1 );
-	glBindTexture( GL_TEXTURE_2D, dataTexture );
-	glActiveTexture( GL_TEXTURE1 );
-	glBindTexture( GL_TEXTURE_2D, dataTexture );
-	glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA8, buffer.dimensions.x, buffer.dimensions.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, &imageData[ 0 ] );
-	glBindImageTexture( 1, dataTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8UI );
-
-	buffer.dataTexture = dataTexture;
 }
 
 void engine::computeShaderCompile() {
@@ -154,8 +138,7 @@ void engine::imguiSetup() {
 	glClear( GL_COLOR_BUFFER_BIT );
 	SDL_GL_SwapWindow( window ); // show clear color
 
-
-	// setting custom font, if desired
+	// setting custom font for the imgui menus, if desired
 	// io.Fonts->AddFontFromFileTTF("resources/fonts/star_trek/titles/TNG_Title.ttf", 16);
 
 	ImGui::StyleColorsDark();

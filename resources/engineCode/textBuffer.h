@@ -18,18 +18,82 @@ struct coloredChar {
 	}
 };
 
+// use these to send the uniforms
+	// bufferSize global uniform location
+	// bufferOffset global uniform location
+
+
+// Layer:
+	// Members:
+		// uvec2 buffer size
+		// ivec2 buffer offset
+		// GLuint texture handle
+		// bool dirty
+		// coloredChar * bufferBase
+
+	// Functions:
+		// draw random chars
+		// draw double frame
+		// draw single frame
+		// draw curly scroll
+		// draw rect random
+		// write string
+		// write coloredChar vector
+		// memset clear
+		// get coloredChar at uvec2
+		// set coloredChar at uvec2
+		// resend data to rebuffer to GPU
+
+
+
+class Layer {
+public:
+	Layer ( glm::uvec2 bSize, glm::ivec2 bOffset );
+	~Layer ();
+
+	glm::uvec2 bufferSize;
+	glm::ivec2 bufferOffset;
+	GLuint textureHandle;
+	bool bufferDirty;
+	coloredChar * bufferBase = nullptr;
+
+	void ClearBuffer ();
+	coloredChar GetCharAt ( glm::uvec2 position );
+	void WriteCharAt ( glm::uvec2 position, coloredChar c );
+	void WriteString ( glm::uvec2 min, glm::uvec2 max, std::string str, glm::ivec3 color );
+	void WriteColoredCharVector ( glm::uvec2 min, glm::uvec2 max, std::vector< coloredChar > vec );
+	void DrawRandomChars ( int n );
+	void DrawDoubleFrame ( glm::uvec2 min, glm::uvec2 max, glm::ivec3 color );
+	void DrawSingleFrame ( glm::uvec2 min, glm::uvec2 max, glm::ivec3 color );
+	void DrawCurlyScroll ( glm::uvec2 start, unsigned int length, glm::ivec3 color );
+	void DrawRectRandom ( glm::uvec2 min, glm::uvec2 max, glm::ivec3 color );
+	void BindAndSendUniforms ();
+};
+
+
+// TextBufferManager:
+	// Members:
+		// vector of Layers ( in draw order )
+		// uvec2 size of the screen, in characters
+		// roguelikeGameDisplay object
+
+	// Functions:
+		// update function to update each Layer + roguelikeGameDisplay
+		// draw function, iterates over Layers
+		// calls the rebuffer on any dirty buffers
+		// bind texture then fullscreen triangle, no depth test
+		// worldSample / worldSample tbd
+
 struct worldSample {
 	bool obstruction = false;
 	coloredChar representation;
 };
-
 struct worldState {
 public:
 	worldState ();
 	float GetNoise ( glm::vec2 position );
 	FastNoise::SmartNode<> fnGenerator;
 };
-
 class roguelikeGameDisplay {
 public:
 	bool Update ();
@@ -40,67 +104,31 @@ public:
 	// allows the displayString to be used directly by the textBuffer
 	glm::uvec2 displayBase = glm::uvec2( 4, 2 );
 	glm::uvec2 displaySize = glm::uvec2( 182, 53 );
+
+	void moveCharacterRight();
+	void moveCharacterLeft();
+	void moveCharacterUp();
+	void moveCharacterDown();
+
 private:
 	float scaleFactor = 0.01f;
 	void PrepareDisplayVector ();
 	worldState ws;
 };
-
-class textBuffer {
+class TextBufferManager {
 public:
-	textBuffer( unsigned int x, unsigned int y )
-		: dimensions( x, y )
-		, bufferSize( x - numCharsBorderX * 2, y - numCharsBorderY * 2 )
-		, offset( numCharsBorderX, numCharsBorderY ) {
-
-			ResetBuffer();
-			Draw();
-	}
-
-	~textBuffer(){
-		free( bufferBase );
-	}
-
+	glm::uvec2 displaySize;
+	std::vector < Layer > layers;
 	roguelikeGameDisplay rgd;
 
-	// size of the buffer
-	glm::uvec2 dimensions;	// size of display
-	glm::uvec2 bufferSize;	// size of the buffer
-	glm::ivec2 offset;			// offset of the buffer within the display
-	bool updateFlag = false;// is there new data to send?
-	bool redrawFlag = false;// is there new data to draw?
+	TextBufferManager ( glm::uvec2 screenDimensions);
+	~TextBufferManager ();
+
 	void Update ();
-	void Draw ();
-	void DrawRandomChars ( int n );
-	void DrawDoubleFrame ( glm::uvec2 min, glm::uvec2 max, glm::ivec3 color );
-	void DrawSingleFrame ( glm::uvec2 min, glm::uvec2 max, glm::ivec3 color );
-	void DrawCurlyScroll ( glm::uvec2 start, unsigned int length, glm::ivec3 color );
-	void DrawRectRandom ( glm::uvec2 min, glm::uvec2 max, glm::ivec3 color );
-	void WriteString ( glm::uvec2 min, glm::uvec2 max, std::string str, glm::ivec3 color );
-	void WriteColoredCharVector ( glm::uvec2 min, glm::uvec2 max, std::vector< coloredChar > vec );
+	void DrawAllLayers ();
 
-	void moveCharacterRight ();
-	void moveCharacterLeft ();
-	void moveCharacterDown ();
-	void moveCharacterUp ();
-
-	void ResetBuffer ();
-	void ZeroBuffer ();
-
-	coloredChar GetCharAt ( glm::uvec2 position );
-	void WriteCharAt ( glm::uvec2 position, coloredChar c );
-
-	// send the data to the GPU
-	GLint dataTexture;	// texture handle for the GPU
-	void ResendData ();
-
-private:
-	// TODO: multiple layers, drawing over one another -
-		// would look better to have layered chars in some circumstances
-
-
-	// malloc/free version - can be used directly for texture
-	coloredChar * bufferBase = nullptr;
+	GLint offsetUniformLocation;
+	GLint displayUniformLocation;
 };
 
 #endif

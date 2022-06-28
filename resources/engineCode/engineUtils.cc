@@ -7,14 +7,12 @@ bool engine::mainLoop() {
 	// clear the screen and depth buffer
 	clear();
 
-	// update the textBuffer object
-	buffer.Update();
+	// update the buffers + draw
+	manager.Update();
+	manager.DrawAllLayers();
 
-	// update the uniforms for the display shader
-	sendDisplayUniforms();
-
-	// fullscreen triangle copying the image
-	mainDisplay();
+	// fullscreen triangle copying the image -> this moves to the TextBufferManager class
+	// mainDisplay();
 
 	// do all the gui stuff
 	imguiPass();
@@ -27,11 +25,6 @@ bool engine::mainLoop() {
 
 	// break main loop when pQuit turns true
 	return pQuit;
-}
-
-void engine::sendDisplayUniforms() {
-	glUniform2i( glGetUniformLocation( displayShader, "numChars" ), buffer.dimensions.x, buffer.dimensions.y );
-	glUniform2i( glGetUniformLocation( displayShader, "offset" ), buffer.offset.x, buffer.offset.y );
 }
 
 void engine::clear() {
@@ -53,19 +46,12 @@ void engine::mainDisplay() {
 void engine::imguiPass() {
 	// start the imgui frame
 	imguiFrameStart();
-
 	// show the demo window
-	static bool showDemoWindow = false;
-	if ( showDemoWindow )
-		ImGui::ShowDemoWindow( &showDemoWindow );
-
+	// static bool showDemoWindow = false;
+	// if ( showDemoWindow ) ImGui::ShowDemoWindow( &showDemoWindow );
 	// showControlsWindow();
-
-	// show quit confirm window
-	quitConf( &quitConfirm );
-
-	// finish up the imgui stuff and put it in the framebuffer
-	imguiFrameEnd();
+	quitConf( &quitConfirm ); // show quit confirm window
+	imguiFrameEnd(); // finish up the imgui stuff and put it in the framebuffer
 }
 
 
@@ -88,9 +74,8 @@ void engine::handleEvents() {
 	}
 
 	const uint8_t *state = SDL_GetKeyboardState( NULL );
-
-	if ( state[ SDL_SCANCODE_RIGHT ] )	buffer.moveCharacterRight();
-	if ( state[ SDL_SCANCODE_LEFT ] )		buffer.moveCharacterLeft();
-	if ( state[ SDL_SCANCODE_UP ] )			buffer.moveCharacterUp();
-	if ( state[ SDL_SCANCODE_DOWN ] )		buffer.moveCharacterDown();
+	if ( state[ SDL_SCANCODE_RIGHT ] )	manager.rgd.moveCharacterRight();
+	if ( state[ SDL_SCANCODE_LEFT ] )		manager.rgd.moveCharacterLeft();
+	if ( state[ SDL_SCANCODE_UP ] )			manager.rgd.moveCharacterUp();
+	if ( state[ SDL_SCANCODE_DOWN ] )		manager.rgd.moveCharacterDown();
 }

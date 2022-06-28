@@ -41,12 +41,11 @@ private:
 	void imguiFrameStart();
 	void imguiFrameEnd();
 	void showControlsWindow();
-	void sendDisplayUniforms();
 	void drawTextEditor();
 	void quitConf( bool *open );
 
-	// textBuffer state
-	textBuffer buffer{ numCharsWidthDefault, numCharsHeightDefault };
+	// state of the layers of text
+	TextBufferManager manager{ glm::uvec2( numCharsWidthDefault, numCharsHeightDefault ) };
 
 	// shutdown procedures
 	void imguiQuit();

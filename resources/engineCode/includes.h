@@ -87,8 +87,6 @@ constexpr int MSAACount = 1;
 #include "../JSON/json.hpp"
 using json = nlohmann::json;
 
-#define WIDTH 640
-#define HEIGHT 480
 
 constexpr unsigned int numCharsWidthDefault = 200;
 constexpr unsigned int numCharsHeightDefault = 61;
