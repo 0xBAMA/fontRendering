@@ -36,8 +36,8 @@ void main() {
 
 
 	// checkerboard
-	if ( int( currentChar ) % 2 == 0 && fragmentOutput.xyz == vec3( 0.0 ) )
-		fragmentOutput.xyz = vec3( 0.618 );
+	// if ( int( currentChar ) % 2 == 0 && fragmentOutput.xyz == vec3( 0.0 ) )
+	//	fragmentOutput.xyz = vec3( 0.618 );
 
 
 	// fragmentOutput.xy = positionOnCharacter;

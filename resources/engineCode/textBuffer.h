@@ -9,13 +9,17 @@ struct coloredChar {
 class textBuffer {
 public:
 	textBuffer( int x, int y ) : dimensions( x, y ) {
-		buffer.resize( x * y );
+		buffer.reserve( x * y );
+		// buffer.resize( x * y );
+		// Repopulate();
+		// ResendData();
 	}
 
 	// size of the buffer
 	glm::ivec2 dimensions;
 	void Update() {
 		// check for buffer resize
+		dimensions.y = 90;
 		static glm::ivec2 lastUpdateDimensions;
 		if ( dimensions != lastUpdateDimensions ) {
 			lastUpdateDimensions = dimensions;
@@ -29,13 +33,14 @@ public:
 	void Repopulate() {
 		std::string message( "This is a string which is being displayed. It will be displayed as a string of white characters. Thanks for looking at the displayed text. Bye." );
 		for ( unsigned int i = 0; i < message.length() && i < buffer.size(); i++ ) {
-			buffer[ i ].data[ 3 ] = message.c_str()[ i ];
+		 	buffer[ i ].data[ 3 ] = message.c_str()[ i ];
 		}
 	}
 
 	// send the data to the GPU
 	GLint dataTexture;	// texture handle for the GPU
 	void ResendData() {
+		// unsigned int offset = 5000;
 		std::vector< uint8_t > imageData;
 		imageData.reserve( dimensions.x * dimensions.y * 4 );
 		for ( int y = 0; y < dimensions.y; y++ )

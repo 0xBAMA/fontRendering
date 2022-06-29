@@ -30,9 +30,10 @@ void engine::createWindowAndContext() {
 	cout << T_GREEN << "done." << RESET << endl;
 
 	cout << T_BLUE << "    Creating window" << RESET << " .................................. ";
-	// auto flags = SDL_WINDOW_OPENGL | SDL_WINDOW_HIDDEN | SDL_WINDOW_BORDERLESS;
-	auto flags = SDL_WINDOW_OPENGL | SDL_WINDOW_HIDDEN | SDL_WINDOW_RESIZABLE;
-	window = SDL_CreateWindow( "NQADE", 0, 0, dm.w, dm.h, flags );
+	auto flags = SDL_WINDOW_OPENGL | SDL_WINDOW_HIDDEN | SDL_WINDOW_BORDERLESS;
+	// auto flags = SDL_WINDOW_OPENGL | SDL_WINDOW_HIDDEN | SDL_WINDOW_RESIZABLE;
+	// window = SDL_CreateWindow( "NQADE", 0, 0, dm.w, dm.h, flags );
+	window = SDL_CreateWindow( "NQADE", 0, 0, 2560, 1440, flags );
 
 	// if init takes some time, don't show the window before it's done
 	SDL_ShowWindow( window );
