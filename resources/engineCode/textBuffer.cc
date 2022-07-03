@@ -95,9 +95,9 @@ void roguelikeGameState::RecursiveScan ( Row r ) {
 	for ( int i = 0; i < r.numTiles; i++ ) {
 		ivec2 current = r.xBasis * ( r.minColumn + i ) + r.yBasis * r.depth;
 		// if ( IsObstruction( current ) || r.IsSymmetric( i ) ) {
-		// if ( IsObstruction( current ) ) {
-		// 	MarkVisible( current );
-		// }
+		if ( IsObstruction( current ) ) {
+			MarkVisible( current );
+		}
 		if ( IsObstruction( previous ) && !IsObstruction( current ) ) {
 			r.startSlope = ( 2 * r.minColumn + i - 1 ) / ( 2 * r.depth );
 			r.minColumn = r.roundUp( r.depth * r.startSlope );
@@ -331,10 +331,10 @@ void TextBufferManager::Populate () {
 void TextBufferManager::Update () {
 	glUniform2i( displayUniformLocation, displaySize.x, displaySize.y );
 	rgd.Update();
-	rgd.DoLighting();
+	// rgd.DoLighting();
 	layers[ 0 ].WriteCCharVector( rgd.displayBase, rgd.displaySize + rgd.displayBase, rgd.displayVector ) ;
-	layers[ 1 ].ClearBuffer();
-	layers[ 1 ].WriteLightVector( rgd.displayBase, rgd.displaySize + rgd.displayBase, rgd.lighting );
+	// layers[ 1 ].ClearBuffer();
+	// layers[ 1 ].WriteLightVector( rgd.displayBase, rgd.displaySize + rgd.displayBase, rgd.lighting );
 	layers[ 4 ].DrawRandomChars( 22 );
 }
 void TextBufferManager::DrawAllLayers () {
