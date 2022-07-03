@@ -73,6 +73,7 @@ void engine::createWindowAndContext() {
 	displayShader = Shader( "resources/engineCode/shaders/blit.vs.glsl", "resources/engineCode/shaders/blit.fs.glsl" ).Program;
 	manager.offsetUniformLocation = glGetUniformLocation( displayShader, "offset" );
 	manager.displayUniformLocation = glGetUniformLocation( displayShader, "numChars" );
+	manager.alphaUniformLocation = glGetUniformLocation( displayShader, "alpha" );
 
 	// have to have dummy call to this - core requires a VAO bound when calling glDrawArrays, otherwise it complains
 	glGenVertexArrays( 1, &displayVAO );

@@ -3,14 +3,18 @@
 #define TEXTBUFFER
 
 #include "extendedASCIIdefines.h"
+using glm::ivec2;
+using glm::ivec3;
+using glm::vec2;
+using glm::uvec2;
 
-struct coloredChar {
+struct cChar {
 	unsigned char data[ 4 ] = { 255, 255, 255, 0 };
-	coloredChar() {}
-	coloredChar( unsigned char c ) {
+	cChar() {}
+	cChar( unsigned char c ) {
 		data[ 3 ] = c;
 	}
-	coloredChar( glm::ivec3 color, unsigned char c ) {
+	cChar( glm::ivec3 color, unsigned char c ) {
 		data[ 0 ] = color.x;
 		data[ 1 ] = color.y;
 		data[ 2 ] = color.z;
@@ -29,7 +33,7 @@ struct coloredChar {
 		// ivec2 buffer offset
 		// GLuint texture handle
 		// bool dirty
-		// coloredChar * bufferBase
+		// cChar * bufferBase
 
 	// Functions:
 		// draw random chars
@@ -38,73 +42,117 @@ struct coloredChar {
 		// draw curly scroll
 		// draw rect random
 		// write string
-		// write coloredChar vector
+		// write cChar vector
 		// memset clear
-		// get coloredChar at uvec2
-		// set coloredChar at uvec2
+		// get cChar at uvec2
+		// set cChar at uvec2
 		// resend data to rebuffer to GPU
-
-
 
 class Layer {
 public:
-	Layer ( glm::uvec2 bSize, glm::ivec2 bOffset );
-	~Layer ();
+	Layer ( uvec2 bSize, ivec2 bOffset, float a ) : bufferSize( bSize ), bufferOffset( bOffset ), alpha( a ) {
+		glGenTextures( 1, &textureHandle ); // get a new texture handle from OpenGL
+		// allocate a new buffer of the specified size
+		size_t numBytes = sizeof( cChar ) * bufferSize.x * bufferSize.y;
+		bufferBase = ( cChar * ) malloc( numBytes );
+		bufferDirty = true; // data will need to be resent next frame
+	}
+	~Layer () { // tbd
+		// if ( bufferBase != nullptr )
+		// 	free( bufferBase );	// deallocate the memory for the buffer
+	}
 
-	glm::uvec2 bufferSize;
-	glm::ivec2 bufferOffset;
+	// buffer parameters
+	uvec2 bufferSize;
+	ivec2 bufferOffset;
+	float alpha;
+
 	GLuint textureHandle;
 	bool bufferDirty;
-	coloredChar * bufferBase = nullptr;
+	cChar * bufferBase = nullptr;
 	GLint offsetUniformLocation;
+	GLint alphaUniformLocation;
 
 	void ClearBuffer ();
-	coloredChar GetCharAt ( glm::uvec2 position );
-	void WriteCharAt ( glm::uvec2 position, coloredChar c );
-	void WriteString ( glm::uvec2 min, glm::uvec2 max, std::string str, glm::ivec3 color );
-	void WriteColoredCharVector ( glm::uvec2 min, glm::uvec2 max, std::vector< coloredChar > vec );
+	cChar GetCharAt ( uvec2 position );
+	void WriteCharAt ( uvec2 position, cChar c );
+	void WriteString ( uvec2 min, uvec2 max, std::string str, ivec3 color );
+	void WriteCCharVector ( uvec2 min, uvec2 max, std::vector< cChar > vec );
+	void WriteLightVector ( uvec2 min, uvec2 max, std::vector< float > vec );
 	void DrawRandomChars ( int n );
-	void DrawDoubleFrame ( glm::uvec2 min, glm::uvec2 max, glm::ivec3 color );
-	void DrawSingleFrame ( glm::uvec2 min, glm::uvec2 max, glm::ivec3 color );
-	void DrawCurlyScroll ( glm::uvec2 start, unsigned int length, glm::ivec3 color );
-	void DrawRectRandom ( glm::uvec2 min, glm::uvec2 max, glm::ivec3 color );
+	void DrawDoubleFrame ( uvec2 min, uvec2 max, ivec3 color );
+	void DrawSingleFrame ( uvec2 min, uvec2 max, ivec3 color );
+	void DrawCurlyScroll ( uvec2 start, unsigned int length, ivec3 color );
+	void DrawRectRandom ( uvec2 min, uvec2 max, ivec3 color );
+	void DrawRectConstant ( uvec2 min, uvec2 max, cChar c );
 	void BindAndSendUniforms ();
 };
-
 
 // TextBufferManager:
 	// Members:
 		// vector of Layers ( in draw order )
 		// uvec2 size of the screen, in characters
-		// roguelikeGameDisplay object
+		// roguelikeGameState object
 
 	// Functions:
-		// update function to update each Layer + roguelikeGameDisplay
+		// update function to update each Layer + roguelikeGameState
 		// draw function, iterates over Layers
 		// calls the rebuffer on any dirty buffers
 		// bind texture then fullscreen triangle, no depth test
 		// worldSample / worldSample tbd
 
-struct worldSample {
-	bool obstruction = false;
-	coloredChar representation;
+// used by lighting
+struct Row {
+	float roundUp( float in ) { return std::floor( in + 0.5f ); }
+	float roundDown( float in ) { return std::ceil( in - 0.5 ); }
+	Row ( int d, float s, float e, ivec2 x, ivec2 y ) : depth( d ), startSlope( s ), endSlope( e ), xBasis( x ), yBasis( y ) {
+		minColumn = roundUp( depth * startSlope );
+		maxColumn = roundDown( depth * endSlope );
+		numTiles = maxColumn - minColumn;
+	}
+	int depth;
+	float startSlope;
+	float endSlope;
+	ivec2 xBasis;
+	ivec2 yBasis;
+	int minColumn;
+	int maxColumn;
+	int numTiles;
+	ivec2 GetTile ();
+	Row Next() {
+		return Row( depth+1, startSlope, endSlope, xBasis, yBasis );
+	}
+	bool IsSymmetric( int i ) {
+		int column = minColumn + i;
+		return ( column >= depth * startSlope && column <= depth * endSlope );
+	}
 };
-struct worldState {
+
+class roguelikeGameState {
 public:
-	worldState ();
-	float GetNoise ( glm::vec2 position );
-	FastNoise::SmartNode<> fnGenerator;
-};
-class roguelikeGameDisplay {
-public:
+	roguelikeGameState ();
 	bool Update ();
-	// centerpoint of the display
-	glm::ivec2 playerLocation = glm::ivec2( 0, 0 );
+	void DoLighting ();
+
+	// centerpoint of the display:
+		// location is offset in world
+	ivec2 playerLocation = ivec2( 0, 0 );
+		// display location is offset on display texture ( constant for a given displaySize )
+	ivec2 playerDisplayLocation;
+
 	// access from above for the display - includes colors now
-	std::vector< coloredChar > displayVector;
+	std::vector< cChar > displayVector;
+
+	// lighting state, kept with the same mapping as the above vector
+	std::vector< float > lighting;
+	void MarkVisible ( ivec2 offset );
+	void MarkInvisible ( ivec2 offset );
+	bool IsObstruction ( ivec2 offset );
+	void RecursiveScan ( Row r );
+
 	// allows the displayString to be used directly by the textBuffer
-	glm::uvec2 displayBase = glm::uvec2( 4, 2 );
-	glm::uvec2 displaySize = glm::uvec2( 182, 53 );
+	uvec2 displayBase;
+	uvec2 displaySize;
 
 	void moveCharacterRight();
 	void moveCharacterLeft();
@@ -112,17 +160,19 @@ public:
 	void moveCharacterDown();
 
 private:
+	int ChunkyNoise ( ivec2 offset );
+	FastNoise::SmartNode<> fnGenerator;
 	float scaleFactor = 0.01f;
 	void PrepareDisplayVector ();
-	worldState ws;
 };
+
 class TextBufferManager {
 public:
-	glm::uvec2 displaySize;
+	uvec2 displaySize;
 	std::vector < Layer > layers;
-	roguelikeGameDisplay rgd;
+	roguelikeGameState rgd;
 
-	TextBufferManager ( glm::uvec2 screenDimensions );
+	TextBufferManager ( uvec2 screenDimensions );
 	~TextBufferManager ();
 
 	void Populate ();
@@ -131,6 +181,7 @@ public:
 
 	GLint offsetUniformLocation;
 	GLint displayUniformLocation;
+	GLint alphaUniformLocation;
 };
 
 #endif

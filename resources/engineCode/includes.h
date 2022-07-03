@@ -88,7 +88,7 @@ constexpr int MSAACount = 1;
 using json = nlohmann::json;
 
 
-constexpr unsigned int numCharsWidthDefault = 200;
+constexpr unsigned int numCharsWidthDefault = 201;
 constexpr unsigned int numCharsHeightDefault = 61;
 constexpr unsigned int numCharsBorderX = 5;
 constexpr unsigned int numCharsBorderY = 2;

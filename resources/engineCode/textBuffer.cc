@@ -1,21 +1,45 @@
 #include "textBuffer.h"
 
-// worldState
-worldState::worldState () {
+#define OFF ivec2(-1000,-1000)
+
+// ROGUELIKEGAMESTATE
+roguelikeGameState::roguelikeGameState () {
 	auto fnSimplex = FastNoise::New<FastNoise::Simplex>();
 	auto fnFractal = FastNoise::New<FastNoise::FractalFBm>();
 	fnFractal->SetSource( fnSimplex );
 	fnFractal->SetOctaveCount( 4 );
 	fnGenerator = fnFractal;
 }
-float worldState::GetNoise ( glm::vec2 position ) {
-	int seed = 42069;
-	return ( fnGenerator->GenSingle2D( position.x, position.y * 2.0f, seed ) + 1.0f ) * 0.5f;
+void roguelikeGameState::moveCharacterRight () {
+	if ( ChunkyNoise( ivec2( 1, 0 ) ) <= 0 ) {
+		playerLocation.x++;
+	}
 }
-
-// ROGUELIKEGAMEDISPLAY
-bool roguelikeGameDisplay::Update () {
-	static glm::ivec2 previousPlayerLocation = glm::ivec2( -1, -1 );
+void roguelikeGameState::moveCharacterLeft () {
+	if ( ChunkyNoise( ivec2( -1, 0 ) ) <= 0 ) {
+		playerLocation.x--;
+	}
+}
+// halving movement speed on the y, due to the size 1x2 scaling of the tiles
+void roguelikeGameState::moveCharacterUp () {
+	static bool toggle = false;
+	if ( toggle && ChunkyNoise( ivec2( 0, -1 ) ) <= 0 )
+		playerLocation.y--;
+	toggle = !toggle;
+}
+void roguelikeGameState::moveCharacterDown () {
+	static bool toggle = false;
+	if ( toggle && ChunkyNoise( ivec2( 0, 1 ) ) <= 0 )
+		playerLocation.y++;
+	toggle = !toggle;
+}
+int roguelikeGameState::ChunkyNoise ( ivec2 offset ) {
+	int seed = 42069;
+	vec2 position = ( vec2( playerLocation ) + vec2( offset ) ) * scaleFactor;
+	return static_cast< int >( fnGenerator->GenSingle2D( position.x, position.y * 2.0f, seed ) * 10.0 );
+}
+bool roguelikeGameState::Update () {
+	static ivec2 previousPlayerLocation = ivec2( -1, -1 );
 	if ( playerLocation != previousPlayerLocation ) {
 		previousPlayerLocation = playerLocation;
 		PrepareDisplayVector();
@@ -23,74 +47,92 @@ bool roguelikeGameDisplay::Update () {
 	}
 	return false;
 }
-void roguelikeGameDisplay::PrepareDisplayVector () {
+void roguelikeGameState::PrepareDisplayVector () {
 	// construct 2d representation in the displayString
 	displayVector.clear();
 	displayVector.reserve( displaySize.x * displaySize.y );
-	const glm::vec2 offset = ( displaySize / 2u );
+	// const ivec2 offset = ( displaySize / 2u );
+	const ivec2 offset = playerDisplayLocation - ivec2( displayBase );
 	const unsigned char fills[ 5 ] = { FILL_0, FILL_25, FILL_50, FILL_75, FILL_100 };
-	for( unsigned int y = 0; y < displaySize.y; y++ ) {
-		for( unsigned int x = 0; x < displaySize.x; x++ ) {
-			glm::vec2 samplePoint = ( glm::vec2( playerLocation ) + glm::vec2( x, y ) - offset ) * scaleFactor;
-			displayVector.push_back( coloredChar( GREEN, fills[ std::clamp( static_cast< int >( ws.GetNoise( samplePoint ) * 8 - 1 ), 0, 4 ) ] ) );
+	for ( unsigned int y = 0; y <= displaySize.y; y++ ) {
+		for ( unsigned int x = 0; x < displaySize.x; x++ ) {
+			displayVector.push_back( cChar( GREEN, fills[ std::clamp( ChunkyNoise( ivec2( x, y ) - offset ), 0, 4 ) ] ) );
 		}
 	}
 }
-// TODO: character movement functions need to check for obstruction
-void roguelikeGameDisplay::moveCharacterRight () {
-	playerLocation.x++;
+// recursive symmetric shadowcasting based on this implementation
+// https://www.albertford.com/shadowcasting/
+void roguelikeGameState::MarkVisible ( ivec2 offset ) {
+	ivec2 location = playerDisplayLocation - ivec2( displayBase ) + offset;
+	lighting[ location.x + displaySize.x * location.y ] = 1.0;
 }
-void roguelikeGameDisplay::moveCharacterLeft () {
-	playerLocation.x--;
+void roguelikeGameState::MarkInvisible ( ivec2 offset ) {
+	ivec2 location = playerDisplayLocation - ivec2( displayBase ) + offset;
+	lighting[ location.x + displaySize.x * location.y ] = 0.0;
 }
-// halving movement speed on the y, due to the size of the tiles
-void roguelikeGameDisplay::moveCharacterUp () {
-	static bool toggle = false;
-	if ( toggle )
-		playerLocation.y--;
-	toggle = !toggle;
+bool roguelikeGameState::IsObstruction ( ivec2 offset ) {
+	if ( offset == OFF )
+		return false;
+	return ChunkyNoise( offset ) > 0;
 }
-void roguelikeGameDisplay::moveCharacterDown () {
-	static bool toggle = false;
-	if ( toggle )
-		playerLocation.y++;
-	toggle = !toggle;
+void roguelikeGameState::DoLighting () {
+	lighting.clear();
+	lighting.resize( ( displaySize.x - displayBase.x ) * ( displaySize.y - displayBase.y ), 0.0 );
+	ivec2 baseX[ 4 ] = { ivec2( 1, 0 ), ivec2(  0, 1 ), ivec2( -1,  0 ), ivec2( 0, -1 ) };
+	ivec2 baseY[ 4 ] = { ivec2( 0, 1 ), ivec2( -1, 0 ), ivec2(  0, -1 ), ivec2( 1,  0 ) };
+	for ( int i = 0; i < 1; i++ ) { // iterate through the four quadrants
+		Row r( 0, -1.0, 1.0, baseX[ i ], baseY[ i ] );
+		RecursiveScan( r );
+	}
+	// MarkInvisible( ivec2( 0, 0 ) ); // player's location looks better marked dark
+}
+ivec2 Row::GetTile () {
+	return ivec2( 0, 0 );
+}
+void roguelikeGameState::RecursiveScan ( Row r ) {
+	ivec2 previous = OFF;
+	if( r.depth > 7 ) return;
+	for ( int i = 0; i < r.numTiles; i++ ) {
+		ivec2 current = r.xBasis * ( r.minColumn + i ) + r.yBasis * r.depth;
+		// if ( IsObstruction( current ) || r.IsSymmetric( i ) ) {
+		// if ( IsObstruction( current ) ) {
+		// 	MarkVisible( current );
+		// }
+		if ( IsObstruction( previous ) && !IsObstruction( current ) ) {
+			r.startSlope = ( 2 * r.minColumn + i - 1 ) / ( 2 * r.depth );
+			r.minColumn = r.roundUp( r.depth * r.startSlope );
+		}
+		if ( !IsObstruction( previous ) && IsObstruction( current ) ) {
+			Row next = r.Next();
+			next.endSlope = ( 2 * r.minColumn + i - 1 ) / ( 2 * r.depth );
+			RecursiveScan( next );
+		}
+	}
+	if ( !IsObstruction( previous ) ) {
+		RecursiveScan( r.Next() );
+	}
 }
 
 // Layer
-Layer::Layer ( glm::uvec2 bSize, glm::ivec2 bOffset ) {
-	bufferSize = bSize;
-	bufferOffset = bOffset;
-	glGenTextures( 1, &textureHandle ); // get a new texture handle from OpenGL
-
-	// allocate a new buffer of the specified size
-	size_t numBytes = sizeof( coloredChar ) * bufferSize.x * bufferSize.y;
-	bufferBase = ( coloredChar * ) malloc( numBytes );
-	bufferDirty = true; // data will need to be resent next frame
-}
-Layer::~Layer () {
-	// if ( bufferBase != nullptr )
-	// 	free( bufferBase );	// deallocate the memory for the buffer
-}
 void Layer::ClearBuffer () {
-	size_t numBytes = sizeof( coloredChar ) * bufferSize.x * bufferSize.y;
+	size_t numBytes = sizeof( cChar ) * bufferSize.x * bufferSize.y;
 	memset( ( void * ) bufferBase, 0, numBytes );
 }
-coloredChar Layer::GetCharAt ( glm::uvec2 position ) {
+cChar Layer::GetCharAt ( uvec2 position ) {
 	if ( position.x < bufferSize.x && position.y < bufferSize.y ) // >= 0 is implicit with unsigned
-		return *( bufferBase + sizeof( coloredChar ) * ( position.x + position.y * bufferSize.x ) );
+		return *( bufferBase + sizeof( cChar ) * ( position.x + position.y * bufferSize.x ) );
 	else
-		return coloredChar();
+		return cChar();
 }
-void Layer::WriteCharAt ( glm::uvec2 position, coloredChar c ) {
+void Layer::WriteCharAt ( uvec2 position, cChar c ) {
 	if ( position.x < bufferSize.x && position.y < bufferSize.y ) {
 		int index = position.x + position.y * bufferSize.x;
 		bufferBase[ index ] = c;
 	}
 }
-void Layer::WriteString ( glm::uvec2 min, glm::uvec2 max, std::string str, glm::ivec3 color ) {
+void Layer::WriteString ( uvec2 min, uvec2 max, std::string str, ivec3 color ) {
 	bufferDirty = true;
-	glm::uvec2 cursor = min;
+	uvec2 cursor = min;
 	for ( auto c : str ) {
 		if ( c == '\t' ) {
 			cursor.x += 2;
@@ -103,7 +145,7 @@ void Layer::WriteString ( glm::uvec2 min, glm::uvec2 max, std::string str, glm::
 		} else if ( c == 0 ) { // null character, don't draw anything - can use 32 aka space to overwrite with blank
 			cursor.x++;
 		} else {
-			WriteCharAt( cursor, coloredChar( color, ( unsigned char )( c ) ) );
+			WriteCharAt( cursor, cChar( color, ( unsigned char )( c ) ) );
 			cursor.x++;
 		}
 		if ( cursor.x >= max.x ) {
@@ -115,9 +157,9 @@ void Layer::WriteString ( glm::uvec2 min, glm::uvec2 max, std::string str, glm::
 		}
 	}
 }
-void Layer::WriteColoredCharVector ( glm::uvec2 min, glm::uvec2 max, std::vector< coloredChar > vec ) {
+void Layer::WriteCCharVector ( uvec2 min, uvec2 max, std::vector< cChar > vec ) {
 	bufferDirty = true;
-	glm::uvec2 cursor = min;
+	uvec2 cursor = min;
 	for ( unsigned int i = 0; i < vec.size(); i++ ) {
 		if ( vec[ i ].data[ 4 ] == '\t' ) {
 			cursor.x += 2;
@@ -142,6 +184,24 @@ void Layer::WriteColoredCharVector ( glm::uvec2 min, glm::uvec2 max, std::vector
 		}
 	}
 }
+void Layer::WriteLightVector ( uvec2 min, uvec2 max, std::vector< float > vec ) {
+	bufferDirty = true;
+	uvec2 cursor = min;
+	for ( unsigned int i = 0; i < vec.size(); i++ ) {
+		cChar c = cChar( WHITE, FILL_25 );
+		const bool lit = ( vec[ i ] == 1.0 );
+		if ( lit )
+			WriteCharAt( cursor, c );
+		cursor.x++;
+		if ( cursor.x >= max.x ) {
+			cursor.y++;
+			cursor.x = min.x;
+			if ( cursor.y >= max.y ) {
+				break;
+			}
+		}
+	}
+}
 void Layer::DrawRandomChars ( int n ) {
 	bufferDirty = true;
 	std::random_device r;
@@ -151,47 +211,47 @@ void Layer::DrawRandomChars ( int n ) {
 	std::uniform_int_distribution< unsigned int > xDist( 0, bufferSize.x - 1 );
 	std::uniform_int_distribution< unsigned int > yDist( 0, bufferSize.y - 1 );
 	for ( int i = 0; i < n; i++ )
-		WriteCharAt( glm::uvec2( xDist( gen ), yDist( gen ) ), coloredChar( glm::ivec3( cDist( gen ), cDist( gen ), cDist( gen ) ), cDist( gen ) ) );
+		WriteCharAt( uvec2( xDist( gen ), yDist( gen ) ), cChar( ivec3( cDist( gen ), cDist( gen ), cDist( gen ) ), cDist( gen ) ) );
 }
-void Layer::DrawDoubleFrame ( glm::uvec2 min, glm::uvec2 max, glm::ivec3 color ) {
+void Layer::DrawDoubleFrame ( uvec2 min, uvec2 max, ivec3 color ) {
 	bufferDirty = true;
-	WriteCharAt( min, coloredChar( color, TOP_LEFT_DOUBLE_CORNER ) );
-	WriteCharAt( glm::uvec2( max.x, min.y ), coloredChar( color, TOP_RIGHT_DOUBLE_CORNER ) );
-	WriteCharAt( glm::uvec2( min.x, max.y ), coloredChar( color, BOTTOM_LEFT_DOUBLE_CORNER ) );
-	WriteCharAt( max, coloredChar( color, BOTTOM_RIGHT_DOUBLE_CORNER ) );
+	WriteCharAt( min, cChar( color, TOP_LEFT_DOUBLE_CORNER ) );
+	WriteCharAt( uvec2( max.x, min.y ), cChar( color, TOP_RIGHT_DOUBLE_CORNER ) );
+	WriteCharAt( uvec2( min.x, max.y ), cChar( color, BOTTOM_LEFT_DOUBLE_CORNER ) );
+	WriteCharAt( max, cChar( color, BOTTOM_RIGHT_DOUBLE_CORNER ) );
 	for( unsigned int x = min.x + 1; x < max.x; x++  ){
-		WriteCharAt( glm::uvec2( x, min.y ), coloredChar( color, HORIZONTAL_DOUBLE ) );
-		WriteCharAt( glm::uvec2( x, max.y ), coloredChar( color, HORIZONTAL_DOUBLE ) );
+		WriteCharAt( uvec2( x, min.y ), cChar( color, HORIZONTAL_DOUBLE ) );
+		WriteCharAt( uvec2( x, max.y ), cChar( color, HORIZONTAL_DOUBLE ) );
 	}
 	for( unsigned int y = min.y + 1; y < max.y; y++  ){
-		WriteCharAt( glm::uvec2( min.x, y ), coloredChar( color, VERTICAL_DOUBLE ) );
-		WriteCharAt( glm::uvec2( max.x, y ), coloredChar( color, VERTICAL_DOUBLE ) );
+		WriteCharAt( uvec2( min.x, y ), cChar( color, VERTICAL_DOUBLE ) );
+		WriteCharAt( uvec2( max.x, y ), cChar( color, VERTICAL_DOUBLE ) );
 	}
 }
-void Layer::DrawSingleFrame ( glm::uvec2 min, glm::uvec2 max, glm::ivec3 color ) {
+void Layer::DrawSingleFrame ( uvec2 min, uvec2 max, ivec3 color ) {
 	bufferDirty = true;
-	WriteCharAt( min, coloredChar( color, TOP_LEFT_SINGLE_CORNER ) );
-	WriteCharAt( glm::uvec2( max.x, min.y ), coloredChar( color, TOP_RIGHT_SINGLE_CORNER ) );
-	WriteCharAt( glm::uvec2( min.x, max.y ), coloredChar( color, BOTTOM_LEFT_SINGLE_CORNER ) );
-	WriteCharAt( max, coloredChar( color, BOTTOM_RIGHT_SINGLE_CORNER ) );
+	WriteCharAt( min, cChar( color, TOP_LEFT_SINGLE_CORNER ) );
+	WriteCharAt( uvec2( max.x, min.y ), cChar( color, TOP_RIGHT_SINGLE_CORNER ) );
+	WriteCharAt( uvec2( min.x, max.y ), cChar( color, BOTTOM_LEFT_SINGLE_CORNER ) );
+	WriteCharAt( max, cChar( color, BOTTOM_RIGHT_SINGLE_CORNER ) );
 	for( unsigned int x = min.x + 1; x < max.x; x++  ){
-		WriteCharAt( glm::uvec2( x, min.y ), coloredChar( color, HORIZONTAL_SINGLE ) );
-		WriteCharAt( glm::uvec2( x, max.y ), coloredChar( color, HORIZONTAL_SINGLE ) );
+		WriteCharAt( uvec2( x, min.y ), cChar( color, HORIZONTAL_SINGLE ) );
+		WriteCharAt( uvec2( x, max.y ), cChar( color, HORIZONTAL_SINGLE ) );
 	}
 	for( unsigned int y = min.y + 1; y < max.y; y++  ){
-		WriteCharAt( glm::uvec2( min.x, y ), coloredChar( color, VERTICAL_SINGLE ) );
-		WriteCharAt( glm::uvec2( max.x, y ), coloredChar( color, VERTICAL_SINGLE ) );
+		WriteCharAt( uvec2( min.x, y ), cChar( color, VERTICAL_SINGLE ) );
+		WriteCharAt( uvec2( max.x, y ), cChar( color, VERTICAL_SINGLE ) );
 	}
 }
-void Layer::DrawCurlyScroll ( glm::uvec2 start, unsigned int length, glm::ivec3 color ) {
+void Layer::DrawCurlyScroll ( uvec2 start, unsigned int length, ivec3 color ) {
 	bufferDirty = true;
-	WriteCharAt( start, coloredChar( color, CURLY_SCROLL_TOP ) );
+	WriteCharAt( start, cChar( color, CURLY_SCROLL_TOP ) );
 	for ( unsigned int i = 1; i < length; i++ ) {
-		WriteCharAt( start + glm::uvec2( 0, i ), coloredChar ( color, CURLY_SCROLL_MIDDLE ) );
+		WriteCharAt( start + uvec2( 0, i ), cChar ( color, CURLY_SCROLL_MIDDLE ) );
 	}
-	WriteCharAt( start + glm::uvec2( 0, length ), coloredChar( color, CURLY_SCROLL_BOTTOM ) );
+	WriteCharAt( start + uvec2( 0, length ), cChar( color, CURLY_SCROLL_BOTTOM ) );
 }
-void Layer::DrawRectRandom ( glm::uvec2 min, glm::uvec2 max, glm::ivec3 color ) {
+void Layer::DrawRectRandom ( uvec2 min, uvec2 max, ivec3 color ) {
 	bufferDirty = true;
 	std::random_device r;
 	std::seed_seq s{ r(), r(), r(), r(), r(), r(), r(), r(), r() };
@@ -201,12 +261,20 @@ void Layer::DrawRectRandom ( glm::uvec2 min, glm::uvec2 max, glm::ivec3 color ) 
 
 	for( unsigned int x = min.x; x <= max.x; x++ ) {
 		for( unsigned int y = min.y; y <= max.y; y++ ) {
-			WriteCharAt( glm::uvec2( x, y ), coloredChar( color, fills[ fDist( gen ) ] ) );
+			WriteCharAt( uvec2( x, y ), cChar( color, fills[ fDist( gen ) ] ) );
+		}
+	}
+}
+void Layer::DrawRectConstant ( uvec2 min, uvec2 max, cChar c ) {
+	for( unsigned int x = min.x; x <= max.x; x++ ) {
+		for( unsigned int y = min.y; y <= max.y; y++ ) {
+			WriteCharAt( uvec2( x, y ), c );
 		}
 	}
 }
 void Layer::BindAndSendUniforms () {
 	glUniform2i( offsetUniformLocation, bufferOffset.x, bufferOffset.y );
+	glUniform1f( alphaUniformLocation, alpha );
 	glActiveTexture( GL_TEXTURE1 );
 	glBindTexture( GL_TEXTURE_2D, textureHandle );
 	if ( bufferDirty ) {
@@ -216,28 +284,58 @@ void Layer::BindAndSendUniforms () {
 	glBindImageTexture( 1, textureHandle, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8UI );
 }
 
-
 // TextBufferManager
-TextBufferManager::TextBufferManager ( glm::uvec2 screenDimensions ) {
+TextBufferManager::TextBufferManager ( uvec2 screenDimensions ) {
 	displaySize = screenDimensions;
 }
 TextBufferManager::~TextBufferManager () {
 
 }
-
 void TextBufferManager::Populate () {
-	for ( int i = 0; i < 4; i++ ) {
-		layers.push_back( Layer( glm::uvec2( 65, 65 ), glm::ivec2( 20 * i, 20 + 5 * i  ) ) );
-		layers[ i ].offsetUniformLocation = offsetUniformLocation;
+	uvec2 baseSize = uvec2( numCharsWidthDefault - 2 * numCharsBorderX, numCharsHeightDefault - 2 * numCharsBorderY );
+	uvec2 borderAmount = ivec2( numCharsBorderX, numCharsBorderY );
+
+	// create layers
+	layers.push_back( Layer( baseSize, borderAmount, 1.0 ) ); // noise bg
+	layers.push_back( Layer( baseSize, borderAmount, 1.0 ) ); // lighting
+	layers.push_back( Layer( baseSize, borderAmount, 1.0 ) ); // character
+	layers.push_back( Layer( uvec2( 53, 53 ), ivec2( 139, 4 ), 1.0 ) );
+	layers.push_back( Layer( uvec2( 52, 51 ), ivec2( 140, 5 ), 1.0 ) );
+
+	rgd.displayBase = uvec2( 3, 2 );
+	rgd.displaySize = baseSize - uvec2( 6, 4 );
+	rgd.playerDisplayLocation = rgd.displayBase + rgd.displaySize / 2u;
+	rgd.playerDisplayLocation.x -= 25;
+
+	// base layer
+	layers[ 0 ].ClearBuffer();
+	layers[ 0 ].DrawDoubleFrame( uvec2( 0, 0 ), baseSize - uvec2( 1, 1 ), GOLD );
+
+	layers[ 1 ].ClearBuffer();
+	// layers[ 1 ].DrawRandomChars( 314 );
+
+	layers[ 2 ].ClearBuffer();
+	layers[ 2 ].WriteCharAt( rgd.playerDisplayLocation, cChar( GOLD, 2 ) );
+
+	layers[ 3 ].ClearBuffer();
+	layers[ 3 ].DrawRectConstant( uvec2( 0, 1 ), layers[ 3 ].bufferSize - uvec2( 1, 2 ), cChar( GOLD, FILL_25 ) );
+	layers[ 3 ].DrawCurlyScroll( uvec2( 0, 0 ), layers[ 3 ].bufferSize.y - 1, GOLD );
+
+	layers[ 4 ].ClearBuffer();
+
+	for ( auto& l : layers ) {
+		l.offsetUniformLocation = offsetUniformLocation;
+		l.alphaUniformLocation = alphaUniformLocation;
 	}
-	layers[ 0 ].DrawRectRandom( glm::uvec2( 0, 0 ), glm::uvec2( 49, 49 ), GOLD );
-	layers[ 1 ].DrawRectRandom( glm::uvec2( 0, 0 ), glm::uvec2( 49, 49 ), GREEN );
-	layers[ 2 ].DrawRectRandom( glm::uvec2( 0, 0 ), glm::uvec2( 49, 49 ), BLUE );
-	layers[ 3 ].DrawRectRandom( glm::uvec2( 0, 0 ), glm::uvec2( 49, 49 ), WHITE );
 }
 void TextBufferManager::Update () {
 	glUniform2i( displayUniformLocation, displaySize.x, displaySize.y );
-	layers[ 2 ].DrawRandomChars( 22 );
+	rgd.Update();
+	rgd.DoLighting();
+	layers[ 0 ].WriteCCharVector( rgd.displayBase, rgd.displaySize + rgd.displayBase, rgd.displayVector ) ;
+	layers[ 1 ].ClearBuffer();
+	layers[ 1 ].WriteLightVector( rgd.displayBase, rgd.displaySize + rgd.displayBase, rgd.lighting );
+	layers[ 4 ].DrawRandomChars( 22 );
 }
 void TextBufferManager::DrawAllLayers () {
 	for ( unsigned int i = 0; i < layers.size(); i++ ) {

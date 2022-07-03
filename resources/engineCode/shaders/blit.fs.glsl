@@ -11,9 +11,10 @@ layout( binding = 1, rgba8ui ) uniform uimage2D dataTexture;
 uniform vec2 resolution;
 uniform ivec2 numChars;
 uniform ivec2 offset;
+uniform float alpha;
 
 out vec4 fragmentOutput;
-void main() {
+void main () {
 
 	fragmentOutput = vec4( 0.0, 0.0, 0.0, 0.0 );
 
@@ -42,6 +43,7 @@ void main() {
 
 	// use the color held in the first three channels
 	fragmentOutput.xyz *= ( characterID.rgb / 255.0 );
+	fragmentOutput.a *= alpha;
 
 	// int idx = characterIndex.x + characterIndex.y * numChars.x;
 	// fragmentOutput = texture( currentFont, vec2(  positionOnCharacter.x / characterAtlasDimensions.x, ( float( idx ) + positionOnCharacter.y ) / characterAtlasDimensions.y ) );
