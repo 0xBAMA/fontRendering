@@ -193,7 +193,7 @@ void Layer::WriteCCharVectorLit ( uvec2 min, uvec2 max, std::vector< cChar > vec
 		} else if ( vec[ i ].data[ 4 ] == 0 ) { // special no-write character
 			cursor.x++;
 		} else {
-			WriteCharAt( cursor, cChar( ivec3( 255.0f * ( ( vec3( vec[ i ].data[ 0 ], vec[ i ].data[ 1 ], vec[ i ].data[ 2 ] ) / 255.0f ) * ( light[ i ] + 0.4f ) * ( vec3( GOLD ) / 255.0f ) ) ), vec[ i ].data[ 3 ] ) );
+			WriteCharAt( cursor, cChar( ivec3( 255.0f * ( ( vec3( vec[ i ].data[ 0 ], vec[ i ].data[ 1 ], vec[ i ].data[ 2 ] ) / 255.0f ) * ( std::clamp( light[ i ] + 0.4f, 0.0f, 1.0f ) ) * ( vec3( GOLD ) / 255.0f ) ) ), vec[ i ].data[ 3 ] ) );
 			cursor.x++;
 		}
 		if ( cursor.x >= max.x ) {
