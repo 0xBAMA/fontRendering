@@ -79,6 +79,7 @@ public:
 	void WriteCharAt ( uvec2 position, cChar c );
 	void WriteString ( uvec2 min, uvec2 max, std::string str, ivec3 color );
 	void WriteCCharVector ( uvec2 min, uvec2 max, std::vector< cChar > vec );
+	void WriteCCharVectorLit ( uvec2 min, uvec2 max, std::vector< cChar > vec, std::vector< float > light );
 	void WriteLightVector ( uvec2 min, uvec2 max, std::vector< float > vec );
 	void DrawRandomChars ( int n );
 	void DrawDoubleFrame ( uvec2 min, uvec2 max, ivec3 color );

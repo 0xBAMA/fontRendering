@@ -66,9 +66,10 @@ void roguelikeGameState::MarkVisible ( ivec2 offset ) {
 	ivec2 location = playerDisplayLocation - ivec2( displayBase ) + offset;
 	unsigned int index = location.x + displaySize.x * location.y;
 	if( index < lighting.size() ) {
+		offset = ivec2( vec2( offset ) * vec2( 1.0f, 2.0f ) );
 		float distanceSqr = length( vec2( offset ) );
-		distanceSqr = distanceSqr * distanceSqr;
-		float val = 100.0f / ( distanceSqr );
+		// distanceSqr = distanceSqr * distanceSqr;
+		float val = 5.0f / distanceSqr;
 		// val = val * val;
 		lighting[ index ] = val;
 	}
@@ -84,18 +85,18 @@ glm::mat2x2 rotate2D ( float r ) {
 void roguelikeGameState::DoLightingRays () {
 	lighting.clear();
 	lighting.resize( displaySize.x * displaySize.y, 0.0 );
-	const float numStepsRound = 300.0f;
-	const float stepSize = 0.45f;
+	const float numStepsRound = 360.0f;
 
 	std::random_device r;
 	std::seed_seq s{ r(), r(), r(), r(), r(), r(), r(), r(), r() };
 	auto gen = std::mt19937_64( s );
 	std::uniform_real_distribution< float > dist( 0.0f, 1.0f );
 
-	for ( float r = 0.0f; r < numStepsRound; r += 1.0f ) {
+	for ( float r = 0.0f; r < numStepsRound; r += dist( gen ) ) {
 		float distance = 0.0f;
 		for ( float s = 0.0f; s < 45.0f; s += 1.0f ) {
 			vec2 direction = rotate2D( r * ( ( 2.0f * pi ) / numStepsRound ) ) * vec2( 0.0f, -1.0f );
+			direction = ( direction * vec2( 2.0f, 1.0f ) );
 			distance += dist( gen );
 			ivec2 queryLocation = ivec2( direction * distance );
 			MarkVisible( queryLocation );
@@ -166,6 +167,33 @@ void Layer::WriteCCharVector ( uvec2 min, uvec2 max, std::vector< cChar > vec ) 
 			cursor.x++;
 		} else {
 			WriteCharAt( cursor, vec[ i ] );
+			cursor.x++;
+		}
+		if ( cursor.x >= max.x ) {
+			cursor.y++;
+			cursor.x = min.x;
+			if ( cursor.y >= max.y ) {
+				break;
+			}
+		}
+	}
+}
+void Layer::WriteCCharVectorLit ( uvec2 min, uvec2 max, std::vector< cChar > vec, std::vector< float > light ) {
+	bufferDirty = true;
+	uvec2 cursor = min;
+	for ( unsigned int i = 0; i < vec.size(); i++ ) {
+		if ( vec[ i ].data[ 4 ] == '\t' ) {
+			cursor.x += 2;
+		} else if ( vec[ i ].data[ 4 ] == '\n' ) {
+			cursor.y++;
+			cursor.x = min.x;
+			if ( cursor.y >= max.y ) {
+				break;
+			}
+		} else if ( vec[ i ].data[ 4 ] == 0 ) { // special no-write character
+			cursor.x++;
+		} else {
+			WriteCharAt( cursor, cChar( ivec3( 255.0f * ( ( vec3( vec[ i ].data[ 0 ], vec[ i ].data[ 1 ], vec[ i ].data[ 2 ] ) / 255.0f ) * ( light[ i ] + 0.4f ) * ( vec3( GOLD ) / 255.0f ) ) ), vec[ i ].data[ 3 ] ) );
 			cursor.x++;
 		}
 		if ( cursor.x >= max.x ) {
@@ -325,7 +353,7 @@ void TextBufferManager::Update () {
 	rgd.Update();
 	// rgd.DoLighting();
 	rgd.DoLightingRays();
-	layers[ 1 ].WriteCCharVector( rgd.displayBase, rgd.displaySize + rgd.displayBase, rgd.displayVector ) ;
+	layers[ 1 ].WriteCCharVectorLit( rgd.displayBase, rgd.displaySize + rgd.displayBase, rgd.displayVector, rgd.lighting );
 	layers[ 0 ].ClearBuffer();
 	layers[ 0 ].WriteLightVector( rgd.displayBase, rgd.displaySize + rgd.displayBase, rgd.lighting );
 	layers[ 4 ].DrawRandomChars( 22 );
