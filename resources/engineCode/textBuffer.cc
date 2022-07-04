@@ -73,10 +73,6 @@ void roguelikeGameState::MarkVisible ( ivec2 offset ) {
 		lighting[ index ] = val;
 	}
 }
-void roguelikeGameState::MarkInvisible ( ivec2 offset ) {
-	ivec2 location = playerDisplayLocation - ivec2( displayBase ) + offset;
-	lighting[ location.x + displaySize.x * location.y ] = 0.0;
-}
 bool roguelikeGameState::IsObstruction ( ivec2 offset ) {
 	if ( offset == OFF )
 		return false;
@@ -107,43 +103,6 @@ void roguelikeGameState::DoLightingRays () {
 				break;
 			}
 		}
-	}
-}
-void roguelikeGameState::DoLighting () {
-	lighting.clear();
-	lighting.resize( ( displaySize.x - displayBase.x ) * ( displaySize.y - displayBase.y ), 0.0 );
-	ivec2 baseX[ 4 ] = { ivec2( 1, 0 ), ivec2(  0, 1 ), ivec2( -1,  0 ), ivec2( 0, -1 ) };
-	ivec2 baseY[ 4 ] = { ivec2( 0, 1 ), ivec2( -1, 0 ), ivec2(  0, -1 ), ivec2( 1,  0 ) };
-	for ( int i = 0; i < 1; i++ ) { // iterate through the four quadrants
-		Row r( 0, -1.0, 1.0, baseX[ i ], baseY[ i ] );
-		RecursiveScan( r );
-	}
-	// MarkInvisible( ivec2( 0, 0 ) ); // player's location looks better marked dark
-}
-ivec2 Row::GetTile () {
-	return ivec2( 0, 0 );
-}
-void roguelikeGameState::RecursiveScan ( Row r ) {
-	ivec2 previous = OFF;
-	if( r.depth > 7 ) return;
-	for ( int i = 0; i < r.numTiles; i++ ) {
-		ivec2 current = r.xBasis * ( r.minColumn + i ) + r.yBasis * r.depth;
-		// if ( IsObstruction( current ) || r.IsSymmetric( i ) ) {
-		if ( IsObstruction( current ) ) {
-			MarkVisible( current );
-		}
-		if ( IsObstruction( previous ) && !IsObstruction( current ) ) {
-			r.startSlope = ( 2 * r.minColumn + i - 1 ) / ( 2 * r.depth );
-			r.minColumn = r.roundUp( r.depth * r.startSlope );
-		}
-		if ( !IsObstruction( previous ) && IsObstruction( current ) ) {
-			Row next = r.Next();
-			next.endSlope = ( 2 * r.minColumn + i - 1 ) / ( 2 * r.depth );
-			RecursiveScan( next );
-		}
-	}
-	if ( !IsObstruction( previous ) ) {
-		RecursiveScan( r.Next() );
 	}
 }
 
