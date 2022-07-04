@@ -6,6 +6,7 @@
 using glm::ivec2;
 using glm::ivec3;
 using glm::vec2;
+using glm::vec3;
 using glm::uvec2;
 
 struct cChar {
@@ -133,6 +134,7 @@ public:
 	roguelikeGameState ();
 	bool Update ();
 	void DoLighting ();
+	void DoLightingRays ();
 
 	// centerpoint of the display:
 		// location is offset in world

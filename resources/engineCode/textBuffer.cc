@@ -64,7 +64,14 @@ void roguelikeGameState::PrepareDisplayVector () {
 // https://www.albertford.com/shadowcasting/
 void roguelikeGameState::MarkVisible ( ivec2 offset ) {
 	ivec2 location = playerDisplayLocation - ivec2( displayBase ) + offset;
-	lighting[ location.x + displaySize.x * location.y ] = 1.0;
+	unsigned int index = location.x + displaySize.x * location.y;
+	if( index < lighting.size() ) {
+		float distanceSqr = length( vec2( offset ) );
+		distanceSqr = distanceSqr * distanceSqr;
+		float val = 100.0f / ( distanceSqr );
+		// val = val * val;
+		lighting[ index ] = val;
+	}
 }
 void roguelikeGameState::MarkInvisible ( ivec2 offset ) {
 	ivec2 location = playerDisplayLocation - ivec2( displayBase ) + offset;
@@ -74,6 +81,33 @@ bool roguelikeGameState::IsObstruction ( ivec2 offset ) {
 	if ( offset == OFF )
 		return false;
 	return ChunkyNoise( offset ) > 0;
+}
+glm::mat2x2 rotate2D ( float r ) {
+  return glm::mat2x2( cos( r ), sin( r ), -sin( r ), cos( r ) );
+}
+void roguelikeGameState::DoLightingRays () {
+	lighting.clear();
+	lighting.resize( displaySize.x * displaySize.y, 0.0 );
+	const float numStepsRound = 300.0f;
+	const float stepSize = 0.45f;
+
+	std::random_device r;
+	std::seed_seq s{ r(), r(), r(), r(), r(), r(), r(), r(), r() };
+	auto gen = std::mt19937_64( s );
+	std::uniform_real_distribution< float > dist( 0.0f, 1.0f );
+
+	for ( float r = 0.0f; r < numStepsRound; r += 1.0f ) {
+		float distance = 0.0f;
+		for ( float s = 0.0f; s < 45.0f; s += 1.0f ) {
+			vec2 direction = rotate2D( r * ( ( 2.0f * pi ) / numStepsRound ) ) * vec2( 0.0f, -1.0f );
+			distance += dist( gen );
+			ivec2 queryLocation = ivec2( direction * distance );
+			MarkVisible( queryLocation );
+			if ( IsObstruction( queryLocation ) ) {
+				break;
+			}
+		}
+	}
 }
 void roguelikeGameState::DoLighting () {
 	lighting.clear();
@@ -188,8 +222,8 @@ void Layer::WriteLightVector ( uvec2 min, uvec2 max, std::vector< float > vec ) 
 	bufferDirty = true;
 	uvec2 cursor = min;
 	for ( unsigned int i = 0; i < vec.size(); i++ ) {
-		cChar c = cChar( WHITE, FILL_25 );
-		const bool lit = ( vec[ i ] == 1.0 );
+		cChar c = cChar( ivec3( vec3( GOLD ) * std::clamp( vec[ i ], 0.0f, 1.0f ) ), FILL_100 );
+		const bool lit = ( vec[ i ] >= 0.0 );
 		if ( lit )
 			WriteCharAt( cursor, c );
 		cursor.x++;
@@ -303,19 +337,18 @@ void TextBufferManager::Populate () {
 	layers.push_back( Layer( uvec2( 52, 51 ), ivec2( 140, 5 ), 1.0 ) );
 
 	rgd.displayBase = uvec2( 3, 2 );
-	rgd.displaySize = baseSize - uvec2( 6, 4 );
-	rgd.playerDisplayLocation = rgd.displayBase + rgd.displaySize / 2u;
+	rgd.displaySize = baseSize - ( 2u * rgd.displayBase );
+	rgd.playerDisplayLocation = rgd.displayBase + ( rgd.displaySize / 2u );
 	rgd.playerDisplayLocation.x -= 25;
 
 	// base layer
-	layers[ 0 ].ClearBuffer();
-	layers[ 0 ].DrawDoubleFrame( uvec2( 0, 0 ), baseSize - uvec2( 1, 1 ), GOLD );
-
 	layers[ 1 ].ClearBuffer();
-	// layers[ 1 ].DrawRandomChars( 314 );
+	layers[ 1 ].DrawDoubleFrame( uvec2( 0, 0 ), baseSize - uvec2( 1, 1 ), GOLD );
+
+	layers[ 0 ].ClearBuffer();
 
 	layers[ 2 ].ClearBuffer();
-	layers[ 2 ].WriteCharAt( rgd.playerDisplayLocation, cChar( GOLD, 2 ) );
+	layers[ 2 ].WriteCharAt( rgd.playerDisplayLocation, cChar( WHITE, 2 ) );
 
 	layers[ 3 ].ClearBuffer();
 	layers[ 3 ].DrawRectConstant( uvec2( 0, 1 ), layers[ 3 ].bufferSize - uvec2( 1, 2 ), cChar( GOLD, FILL_25 ) );
@@ -332,9 +365,10 @@ void TextBufferManager::Update () {
 	glUniform2i( displayUniformLocation, displaySize.x, displaySize.y );
 	rgd.Update();
 	// rgd.DoLighting();
-	layers[ 0 ].WriteCCharVector( rgd.displayBase, rgd.displaySize + rgd.displayBase, rgd.displayVector ) ;
-	// layers[ 1 ].ClearBuffer();
-	// layers[ 1 ].WriteLightVector( rgd.displayBase, rgd.displaySize + rgd.displayBase, rgd.lighting );
+	rgd.DoLightingRays();
+	layers[ 1 ].WriteCCharVector( rgd.displayBase, rgd.displaySize + rgd.displayBase, rgd.displayVector ) ;
+	layers[ 0 ].ClearBuffer();
+	layers[ 0 ].WriteLightVector( rgd.displayBase, rgd.displaySize + rgd.displayBase, rgd.lighting );
 	layers[ 4 ].DrawRandomChars( 22 );
 }
 void TextBufferManager::DrawAllLayers () {
