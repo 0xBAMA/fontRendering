@@ -9,6 +9,14 @@ roguelikeGameState::roguelikeGameState () {
 	fnFractal->SetSource( fnSimplex );
 	fnFractal->SetOctaveCount( 4 );
 	fnGenerator = fnFractal;
+
+	// second, higher frequency noise, which gives the ground enough texture to
+	// act as occluders for the smaller rock shadows
+	auto fnSimplex2 = FastNoise::New<FastNoise::Simplex>();
+	auto fnFractal2 = FastNoise::New<FastNoise::FractalFBm>();
+	fnFractal2->SetSource( fnSimplex2 );
+	fnFractal2->SetOctaveCount( 5 );
+	fnGenerator2 = fnFractal2;
 }
 void roguelikeGameState::moveCharacterRight () {
 	if ( ChunkyNoise( ivec2( 1, 0 ) ) <= 0 ) {
@@ -38,6 +46,11 @@ int roguelikeGameState::ChunkyNoise ( ivec2 offset ) {
 	vec2 position = ( vec2( playerLocation ) + vec2( offset ) ) * scaleFactor;
 	return static_cast< int >( fnGenerator->GenSingle2D( position.x, position.y * 2.0f, seed ) * 10.0 );
 }
+int roguelikeGameState::RockyNoise ( ivec2 offset ) {
+	int seed = 42069;
+	vec2 position = ( vec2( playerLocation ) + vec2( offset ) ) * scaleFactor * 5.0f;
+	return static_cast< int >( fnGenerator2->GenSingle2D( position.x, position.y * 2.0f, seed ) * 10.0 );
+}
 bool roguelikeGameState::Update () {
 	static ivec2 previousPlayerLocation = ivec2( -1, -1 );
 	if ( playerLocation != previousPlayerLocation ) {
@@ -56,13 +69,16 @@ void roguelikeGameState::PrepareDisplayVector () {
 	const unsigned char fills[ 5 ] = { FILL_0, FILL_25, FILL_50, FILL_75, FILL_100 };
 	for ( unsigned int y = 0; y <= displaySize.y; y++ ) {
 		for ( unsigned int x = 0; x < displaySize.x; x++ ) {
-			displayVector.push_back( cChar( GREEN, fills[ std::clamp( ChunkyNoise( ivec2( x, y ) - offset ), 0, 4 ) ] ) );
+			if ( std::clamp( ChunkyNoise( ivec2( x, y ) - offset ), 0, 4 ) > 0 )
+				displayVector.push_back( cChar( GREEN, fills[ std::clamp( ChunkyNoise( ivec2( x, y ) - offset ), 0, 4 ) ] ) );
+			else
+				displayVector.push_back( cChar( GREY, fills[ std::clamp( RockyNoise( ivec2( x, y ) - offset ), 0, 4 ) ] ) );
 		}
 	}
 }
 // recursive symmetric shadowcasting based on this implementation
 // https://www.albertford.com/shadowcasting/
-void roguelikeGameState::MarkVisible ( ivec2 offset ) {
+void roguelikeGameState::MarkVisible ( ivec2 offset, float scalar = 1.0 ) {
 	ivec2 location = playerDisplayLocation - ivec2( displayBase ) + offset;
 	unsigned int index = location.x + displaySize.x * location.y;
 	if( index < lighting.size() ) {
@@ -71,7 +87,7 @@ void roguelikeGameState::MarkVisible ( ivec2 offset ) {
 		// distanceSqr = distanceSqr * distanceSqr;
 		float val = 5.0f / distanceSqr;
 		// val = val * val;
-		lighting[ index ] = val;
+		lighting[ index ] = val * scalar;
 	}
 }
 bool roguelikeGameState::IsObstruction ( ivec2 offset ) {
@@ -106,6 +122,13 @@ void roguelikeGameState::DoLightingRays () {
 		}
 	}
 }
+
+void roguelikeGameState::DoLightingRaysWithLilOccluders () {
+	lighting.clear();
+	lighting.resize( displaySize.x * displaySize.y, 0.0f );
+
+}
+
 
 // Layer
 void Layer::ClearBuffer () {
@@ -353,6 +376,7 @@ void TextBufferManager::Update () {
 	rgd.Update();
 	// rgd.DoLighting();
 	rgd.DoLightingRays();
+	// rgd.DoLightingRaysWithLilOccluders();
 	layers[ 1 ].WriteCCharVectorLit( rgd.displayBase, rgd.displaySize + rgd.displayBase, rgd.displayVector, rgd.lighting );
 	layers[ 0 ].ClearBuffer();
 	layers[ 0 ].WriteLightVector( rgd.displayBase, rgd.displaySize + rgd.displayBase, rgd.lighting );

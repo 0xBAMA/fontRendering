@@ -108,6 +108,8 @@ public:
 	roguelikeGameState ();
 	bool Update ();
 	void DoLightingRays ();
+	void DoLightingRaysWithLilOccluders ();
+
 
 	// centerpoint of the display:
 		// location is offset in world
@@ -120,7 +122,7 @@ public:
 
 	// lighting state, kept with the same mapping as the above vector
 	std::vector< float > lighting;
-	void MarkVisible ( ivec2 offset );
+	void MarkVisible ( ivec2 offset, float scalar );
 	bool IsObstruction ( ivec2 offset );
 
 	// allows the displayString to be used directly by the textBuffer
@@ -134,7 +136,9 @@ public:
 
 private:
 	int ChunkyNoise ( ivec2 offset );
+	int RockyNoise ( ivec2 offset );
 	FastNoise::SmartNode<> fnGenerator;
+	FastNoise::SmartNode<> fnGenerator2;
 	float scaleFactor = 0.01f;
 	void PrepareDisplayVector ();
 };
